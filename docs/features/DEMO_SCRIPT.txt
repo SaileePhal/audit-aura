@@ -1,0 +1,32 @@
+
+🎤 AegisAI Demo Script
+
+1. Introduction
+"Today, compliance is point-in-time. A system can pass an audit, and minutes later become non-compliant."
+
+2. Problem
+"Organizations only discover violations weeks later during audits."
+
+3. Solution
+"AegisAI is a continuous compliance observer powered by AI."
+
+4. Demo
+- Upload compliance PDF
+- Show extracted controls
+- Trigger live event
+
+(Wait for alert)
+
+"Here we see a real-time violation detected."
+
+5. AI Explanation
+"Our AI explains what went wrong and how to fix it."
+
+6. Auto Fix
+"We can generate a fix and raise a GitHub PR."
+
+7. Impact
+"This eliminates audit panic and ensures continuous readiness."
+
+8. Closing
+"With AegisAI, compliance is no longer periodic — it's continuous."

@@ -1,0 +1,126 @@
+{
+  "violations": [],
+  "compliance_scores": {
+    "overall": 1.0,
+    "by_standard": {},
+    "trend": {
+      "last_7_days": [],
+      "last_30_days": []
+    }
+  },
+  "standards": [],
+  "recent_events": [],
+  "security_metrics": {},
+  "cloud_event_trackers": [
+    {
+      "id": "ibm-at-us-south",
+      "name": "IBM Cloud Activity Tracker",
+      "provider": "IBM Cloud",
+      "type": "ibm_activity_tracker",
+      "instance": "us-south",
+      "status": "inactive",
+      "events_monitored": 0,
+      "config_changes_detected": 0,
+      "last_event": null,
+      "health": "not_configured",
+      "region": "us-south",
+      "description": "IBM Cloud Activity Tracker - Configure with API key to start monitoring"
+    },
+    {
+      "id": "ibm-monitoring-us-south",
+      "name": "IBM Cloud Monitoring",
+      "provider": "IBM Cloud",
+      "type": "ibm_monitoring",
+      "instance": "us-south",
+      "status": "inactive",
+      "events_monitored": 0,
+      "config_changes_detected": 0,
+      "last_event": null,
+      "health": "not_configured",
+      "region": "us-south",
+      "description": "IBM Cloud Monitoring - Configure with API key to start monitoring"
+    },
+    {
+      "id": "ibm-logs-us-south",
+      "name": "IBM Cloud Logs",
+      "provider": "IBM Cloud",
+      "type": "ibm_logs",
+      "instance": "us-south",
+      "status": "inactive",
+      "events_monitored": 0,
+      "config_changes_detected": 0,
+      "last_event": null,
+      "health": "not_configured",
+      "region": "us-south",
+      "description": "IBM Cloud Logs - Configure with API key to start monitoring"
+    }
+  ],
+  "ibm_cloud_at_events": [],
+  "configuration_drift": {
+    "total_drifts": 0,
+    "critical_drifts": 0,
+    "high_drifts": 0,
+    "medium_drifts": 0,
+    "drift_by_source": {},
+    "recent_drifts": []
+  },
+  "compliance_drift": {
+    "total_controls_drifted": 0,
+    "standards_affected": [],
+    "drift_trend": {
+      "last_7_days": [],
+      "last_30_days": []
+    },
+    "by_standard": {}
+  },
+  "persona_insights": {
+    "admin": {
+      "priority_actions": [],
+      "kpis": {
+        "drift_resolution_rate": 100,
+        "mean_time_to_detect_drift": "0 hours",
+        "mean_time_to_remediate": "0 hours",
+        "compliance_score_trend": "stable"
+      }
+    },
+    "security": {
+      "active_threats": [],
+      "investigation_queue": 0,
+      "incidents_from_drift": 0,
+      "kpis": {
+        "security_posture_score": 100,
+        "critical_findings": 0,
+        "time_to_detect": "0 hours",
+        "false_positive_rate": 0
+      }
+    },
+    "auditor": {
+      "audit_findings": [],
+      "compliance_gaps": [],
+      "kpis": {
+        "controls_compliant": 100,
+        "controls_drifted": 0,
+        "evidence_completeness": 100,
+        "audit_readiness_score": 100
+      }
+    },
+    "user": {
+      "my_violations": 0,
+      "my_remediation_tasks": [],
+      "training_required": [],
+      "kpis": {
+        "tasks_completed": 0,
+        "tasks_pending": 0,
+        "average_resolution_time": "0 hours",
+        "compliance_score": 100
+      }
+    }
+  },
+  "live_score_simulation": {
+    "enabled": false,
+    "update_interval_seconds": 30,
+    "score_variations": [-2, -1, 0, 0, 0, 1, 2],
+    "min_score": 70,
+    "max_score": 100
+  }
+}
