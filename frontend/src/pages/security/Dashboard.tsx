@@ -8,7 +8,7 @@ export const SecurityDashboard: React.FC = () => {
   const { complianceScore, violations, fetchDashboard, dashboardData } = useComplianceStore();
   const [timeRange, setTimeRange] = useState('24h');
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [cloudTrackers, setCloudTrackers] = useState<any[]>([]);
+  const [cloudConnections, setCloudConnections] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,8 +19,8 @@ export const SecurityDashboard: React.FC = () => {
       try {
         const response = await fetch('http://localhost:8000/dashboard');
         const data = await response.json();
-        if (data.cloud_event_trackers) {
-          setCloudTrackers(data.cloud_event_trackers);
+        if (data.cloud_connections && Array.isArray(data.cloud_connections)) {
+          setCloudConnections(data.cloud_connections);
         }
       } catch (error) {
         console.error('Failed to fetch cloud trackers:', error);
@@ -130,7 +130,7 @@ export const SecurityDashboard: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 glass rounded-lg px-3 py-2">
             <Activity className="h-5 w-5 text-green-400 animate-pulse" />
-            <span className="text-sm font-medium text-green-400">{cloudTrackers.length} Active</span>
+            <span className="text-sm font-medium text-green-400">{Array.isArray(cloudConnections) ? cloudConnections.length : 0} Active</span>
           </div>
         </div>
         
@@ -138,43 +138,43 @@ export const SecurityDashboard: React.FC = () => {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="glass-card p-4 hover-lift">
             <div className="text-2xl font-bold text-dark-900">
-              {(cloudTrackers || []).reduce((sum: number, t: any) => sum + (t.events_monitored || 0), 0).toLocaleString()}
+              {(Array.isArray(cloudConnections) ? cloudConnections : []).reduce((sum: number, t: any) => sum + (t.events_monitored || 0), 0).toLocaleString()}
             </div>
             <div className="text-xs text-dark-500 mt-1">Total Events</div>
           </div>
           <div className="glass-card p-4 hover-lift">
             <div className="text-2xl font-bold text-orange-400">
-              {(cloudTrackers || []).reduce((sum: number, t: any) => sum + (t.config_changes_detected || 0), 0)}
+              {(Array.isArray(cloudConnections) ? cloudConnections : []).reduce((sum: number, t: any) => sum + (t.config_changes_detected || 0), 0)}
             </div>
             <div className="text-xs text-dark-500 mt-1">Config Changes</div>
           </div>
           <div className="glass-card p-4 hover-lift">
             <div className="text-2xl font-bold text-green-400">
-              {(cloudTrackers || []).filter((t: any) => t.health === 'healthy').length}/{(cloudTrackers || []).length}
+              {(Array.isArray(cloudConnections) ? cloudConnections : []).filter((t: any) => t.health === 'healthy').length}/{Array.isArray(cloudConnections) ? cloudConnections.length : 0}
             </div>
-            <div className="text-xs text-dark-500 mt-1">Healthy Sources</div>
+            <div className="text-xs text-dark-500 mt-1">Healthy Connections</div>
           </div>
         </div>
 
         {/* Sources List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cloudTrackers.map((tracker: any) => (
+          {(Array.isArray(cloudConnections) ? cloudConnections : []).map((connection: any) => (
             <div
-              key={tracker.id}
+              key={connection.id}
               className="glass-card p-4 hover-lift group"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-dark-900 text-sm">{tracker.name}</span>
-                    <span className="text-xs text-dark-500">({tracker.region})</span>
+                    <span className="font-medium text-dark-900 text-sm">{connection.name}</span>
+                    <span className="text-xs text-dark-500">({connection.region})</span>
                   </div>
-                  <p className="text-xs text-dark-500 mt-1">{tracker.provider}</p>
+                  <p className="text-xs text-dark-500 mt-1">{connection.provider}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Activity className={`h-3 w-3 ${tracker.health === 'healthy' ? 'text-green-400 animate-pulse' : 'text-red-400'}`} />
-                  <span className={`text-xs font-medium ${tracker.status === 'active' ? 'text-green-400' : 'text-dark-500'}`}>
-                    {tracker.status}
+                  <Activity className={`h-3 w-3 ${connection.health === 'healthy' ? 'text-green-400 animate-pulse' : 'text-red-400'}`} />
+                  <span className={`text-xs font-medium ${connection.status === 'active' ? 'text-green-400' : 'text-dark-500'}`}>
+                    {connection.status}
                   </span>
                 </div>
               </div>
@@ -182,19 +182,19 @@ export const SecurityDashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="glass rounded-lg p-2">
                   <span className="text-xs text-dark-500">Events</span>
-                  <div className="font-medium text-dark-900 mt-1">{tracker.events_monitored.toLocaleString()}</div>
+                  <div className="font-medium text-dark-900 mt-1">{connection.events_monitored.toLocaleString()}</div>
                 </div>
                 <div className="glass rounded-lg p-2">
                   <span className="text-xs text-dark-500">Changes</span>
-                  <div className="font-medium text-orange-400 mt-1">{tracker.config_changes_detected}</div>
+                  <div className="font-medium text-orange-400 mt-1">{connection.config_changes_detected}</div>
                 </div>
               </div>
             </div>
           ))}
-          {cloudTrackers.length === 0 && (
+          {(Array.isArray(cloudConnections) ? cloudConnections.length : 0) === 0 && (
             <div className="col-span-full text-center py-8 text-dark-500">
               <Cloud className="h-12 w-12 mx-auto mb-2 text-dark-400" />
-              <p>No event sources configured</p>
+              <p>No cloud connections configured</p>
             </div>
           )}
         </div>

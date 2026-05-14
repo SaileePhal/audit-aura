@@ -3,12 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import SkillAcquisitionAnimation from './components/SkillAcquisitionAnimation';
+import { useWebSocket } from './hooks/useWebSocket';
 
 // Pages
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminControls } from './pages/admin/Controls';
 import { AdminSettings } from './pages/admin/Settings';
 import { AdminConnections } from './pages/admin/Connections';
+import AdminSkills from './pages/admin/Skills';
 import { UserDashboard } from './pages/user/Dashboard';
 import { UserViolations } from './pages/user/Violations';
 import { AuditorDashboard } from './pages/auditor/Dashboard';
@@ -31,6 +34,10 @@ interface User {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newSkills, setNewSkills] = useState<any[]>([]);
+
+  // WebSocket connection for real-time updates
+  const { lastMessage } = useWebSocket();
 
   useEffect(() => {
     // Check for stored user session
@@ -46,6 +53,20 @@ function App() {
     }
     setLoading(false);
   }, []);
+
+  // Handle WebSocket messages for skill acquisition
+  useEffect(() => {
+    if (lastMessage) {
+      try {
+        const message = JSON.parse(lastMessage);
+        if (message.type === 'skills_acquired' && message.data?.skills) {
+          setNewSkills(message.data.skills);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    }
+  }, [lastMessage]);
 
   const handleLogin = (role: UserRole, name: string, email: string) => {
     const newUser = { role, name, email };
@@ -65,6 +86,14 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {/* Skill Acquisition Animation */}
+      {newSkills.length > 0 && (
+        <SkillAcquisitionAnimation
+          skills={newSkills}
+          onComplete={() => setNewSkills([])}
+        />
+      )}
+
       <BrowserRouter
         future={{
           v7_startTransition: true,
@@ -93,6 +122,7 @@ function App() {
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin/controls" element={<AdminControls />} />
                   <Route path="/admin/connections" element={<AdminConnections />} />
+                  <Route path="/admin/skills" element={<AdminSkills />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                 </>
               )}

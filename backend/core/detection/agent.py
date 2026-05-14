@@ -23,6 +23,7 @@ from core.detection.skills.remediation.plan_generator import RemediationGenerati
 from core.compliance.tracker import get_tracker
 from infrastructure.messaging.websocket import ws_manager
 from infrastructure.database.vector_store import get_vector_store
+from models.skill import SkillMetadata, get_skill_persistence
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +43,13 @@ class SkillBasedDetectionSystem:
         self.event_count = 0
         logger.info("Skill-based detection system created")
     
-    async def initialize(self, controls: List[Dict[str, Any]]):
+    async def initialize(self, controls: List[Dict[str, Any]], broadcast_new_skills: bool = False):
         """
         Initialize the detection system with compliance controls
         
         Args:
             controls: List of compliance controls to create detection skills from
+            broadcast_new_skills: Whether to broadcast new skill acquisitions via WebSocket
         """
         try:
             logger.info(f"Initializing skill-based detection system with {len(controls)} controls")
@@ -55,12 +57,46 @@ class SkillBasedDetectionSystem:
             # Get or create skill registry
             self.skill_registry = get_skill_registry()
             
+            # Get skill persistence
+            skill_persistence = get_skill_persistence()
+            
+            # Track new skills for broadcasting
+            new_skills = []
+            
             # Create detection skills from controls
             detection_skills = create_detection_skills_from_controls(controls)
             
-            # Register detection skills
+            # Register detection skills and persist metadata
             for skill in detection_skills:
-                self.skill_registry.register(skill)
+                # Check if this is a new skill
+                existing_skill = skill_persistence.get_skill(skill.skill_id)
+                is_new = existing_skill is None
+                
+                # Create skill metadata
+                control = next((c for c in controls if f"detect_{c.get('control_id', '').replace('.', '_').replace('-', '_').lower()}" == skill.skill_id), None)
+                skill_metadata = SkillMetadata(
+                    skill_id=skill.skill_id,
+                    name=skill.name,
+                    description=skill.description,
+                    category=skill.category.value,
+                    control_id=control.get('control_id') if control else None,
+                    standard=control.get('standard') if control else None,
+                    severity=control.get('severity') if control else None,
+                    enabled=existing_skill.enabled if existing_skill else True
+                )
+                
+                # Persist skill metadata
+                skill_persistence.add_skill(skill_metadata)
+                
+                # Only register if enabled
+                if skill_metadata.enabled:
+                    self.skill_registry.register(skill)
+                    
+                    # Track new skills for broadcasting
+                    if is_new and broadcast_new_skills:
+                        new_skills.append(skill_metadata.to_dict())
+                else:
+                    logger.info(f"Skipping disabled skill: {skill.skill_id}")
             
             # Register analysis skills
             self.skill_registry.register(SecurityImpactAnalysisSkill())
@@ -90,6 +126,10 @@ class SkillBasedDetectionSystem:
             stats = self.skill_registry.get_stats()
             logger.info(f"Detection system initialized: {stats['total_skills']} skills registered")
             logger.info(f"Skills by category: {stats['by_category']}")
+            
+            # Broadcast new skills acquired
+            if new_skills and broadcast_new_skills:
+                await self._broadcast_skills_acquired(new_skills)
             
         except Exception as e:
             logger.error(f"Failed to initialize detection system: {e}", exc_info=True)
@@ -204,6 +244,24 @@ class SkillBasedDetectionSystem:
         except Exception as e:
             logger.error(f"Error broadcasting violation: {e}")
     
+    async def _broadcast_skills_acquired(self, skills: List[Dict[str, Any]]):
+        """Broadcast newly acquired skills to WebSocket clients"""
+        try:
+            message = {
+                'type': 'skills_acquired',
+                'data': {
+                    'skills': skills,
+                    'count': len(skills),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+            }
+            
+            await ws_manager.broadcast(message)
+            logger.info(f"Broadcasted {len(skills)} newly acquired skills")
+            
+        except Exception as e:
+            logger.error(f"Error broadcasting skills acquired: {e}")
+    
     def get_stats(self) -> Dict[str, Any]:
         """Get detection system statistics"""
         stats = {
@@ -221,15 +279,16 @@ class SkillBasedDetectionSystem:
         
         return stats
     
-    async def reload_controls(self, controls: List[Dict[str, Any]]):
+    async def reload_controls(self, controls: List[Dict[str, Any]], broadcast_new_skills: bool = True):
         """
         Reload detection skills from updated controls
         
         Args:
             controls: Updated list of compliance controls
+            broadcast_new_skills: Whether to broadcast new skill acquisitions
         """
         logger.info(f"Reloading detection system with {len(controls)} controls")
-        await self.initialize(controls)
+        await self.initialize(controls, broadcast_new_skills=broadcast_new_skills)
 
 
 # Global detection system instance

@@ -15,8 +15,8 @@ AegisAI now supports automatic fallback from OpenAI to Ollama (local LLM) when O
   - Better understanding of compliance terminology
   - Consistent JSON formatting
 
-### Fallback: Ollama TinyLlama
-- **Model**: `tinyllama` (running locally via Docker, optimized for low memory ~600MB)
+### Fallback: Ollama phi4-mini
+- **Model**: `phi4-mini` (running locally via Docker, optimized for low memory ~600MB)
 - **Use Case**: Backup extraction when OpenAI is unavailable
 - **Response Format**: JSON via prompt engineering
 - **Advantages**:
@@ -54,7 +54,7 @@ AegisAI now supports automatic fallback from OpenAI to Ollama (local LLM) when O
        response = requests.post(
            "http://ollama:11434/api/generate",
            json={
-               "model": "tinyllama",
+               "model": "phi4-mini",
                "prompt": prompt,
                "stream": False,
                "format": "json"
@@ -95,8 +95,8 @@ ollama:
 **Initialization Script** (`ollama-init.sh`):
 ```bash
 #!/bin/bash
-echo "Pulling tinyllama model (optimized for low memory)..."
-docker exec aegis-ai-ollama-1 ollama pull tinyllama
+echo "Pulling phi4-mini model (optimized for low memory)..."
+docker exec aegis-ai-ollama-1 ollama pull phi4-mini
 ```
 
 ## Usage
@@ -144,7 +144,7 @@ curl -X POST http://localhost:8000/upload-pdf \
 
 ## Performance Comparison
 
-| Metric | OpenAI GPT-4o-mini | Ollama TinyLlama |
+| Metric | OpenAI GPT-4o-mini | Ollama phi4-mini |
 |--------|-------------------|---------------|
 | **Speed** | ~2-5 seconds/chunk | ~10-30 seconds/chunk |
 | **Accuracy** | 95-98% | 75-85% |
@@ -209,7 +209,7 @@ docker ps | grep ollama
 # Restart Ollama
 docker-compose restart ollama
 
-# Pull tinyllama model
+# Pull phi4-mini model
 ./ollama-init.sh
 ```
 
@@ -219,8 +219,8 @@ docker-compose restart ollama
 - Extraction takes >60 seconds per chunk
 
 **Solutions**:
-1. **Already using smallest model** (tinyllama ~600MB):
-   - TinyLlama is optimized for low memory environments
+1. **Already using smallest model** (phi4-mini ~600MB):
+   - phi4-mini is optimized for low memory environments
    - If still too slow, consider increasing timeout
 
 2. **Increase timeout**:

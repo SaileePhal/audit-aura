@@ -19,7 +19,7 @@ class Config(BaseModel):
     
     # Ollama Configuration
     ollama_host: str = Field(default='http://ollama:11434', env='OLLAMA_HOST')
-    ollama_model: str = Field(default='tinyllama', env='OLLAMA_MODEL')
+    ollama_model: str = Field(default='phi4-mini', env='OLLAMA_MODEL')
     ollama_enabled: bool = Field(default=False, env='OLLAMA_ENABLED')
     
     # LM Studio Configuration
@@ -99,7 +99,7 @@ def load_config() -> Config:
             openai_api_key=os.getenv('OPENAI_API_KEY'),
             openai_enabled=os.getenv('OPENAI_ENABLED', 'false').lower() == 'true',
             ollama_host=os.getenv('OLLAMA_HOST', 'http://ollama:11434'),
-            ollama_model=os.getenv('OLLAMA_MODEL', 'tinyllama'),
+            ollama_model=os.getenv('OLLAMA_MODEL', 'phi4-mini'),
             ollama_enabled=os.getenv('OLLAMA_ENABLED', 'false').lower() == 'true',
             lm_studio_host=os.getenv('LM_STUDIO_HOST', 'http://localhost:1234'),
             lm_studio_model=os.getenv('LM_STUDIO_MODEL', 'google/gemma-2-9b'),

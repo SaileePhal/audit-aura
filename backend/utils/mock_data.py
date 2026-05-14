@@ -172,8 +172,8 @@ class MockDataService:
         return self._data.get("security_metrics", {})
     
     def get_cloud_event_trackers(self) -> List[Dict[str, Any]]:
-        """Get configured cloud event trackers"""
-        return self._data.get("cloud_event_trackers", [])
+        """Get configured cloud connections (event trackers)"""
+        return self._data.get("cloud_connections", [])
     
     def get_dashboard_data(self, role: str = "admin") -> Dict[str, Any]:
         """Get all data for dashboard based on role"""
@@ -182,7 +182,7 @@ class MockDataService:
             "violations": self.get_violations(),
             "standards": self.get_standards(),
             "recent_events": self.get_recent_events(limit=10),
-            "cloud_event_trackers": self.get_cloud_event_trackers()
+            "cloud_connections": self.get_cloud_event_trackers()
         }
         
         # Add role-specific data

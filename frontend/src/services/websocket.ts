@@ -30,22 +30,20 @@ class WebSocketService {
       console.log('WebSocket connected');
       this.reconnectAttempts = 0;
       // Send ping to keep connection alive
-      this.send('ping');
+      this.send(JSON.stringify({ type: 'ping' }));
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
-        // Handle pong responses
-        if (typeof data === 'string' && data.startsWith('pong:')) {
+        // Handle pong responses (ignore keepalive)
+        if (data.type === 'pong') {
           return;
         }
 
-        // Notify all message handlers
-        if (data.type === 'violation') {
-          this.messageHandlers.forEach((handler) => handler(data));
-        }
+        // Notify all message handlers for all message types
+        this.messageHandlers.forEach((handler) => handler(data));
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
       }

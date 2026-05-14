@@ -19,7 +19,7 @@ Successfully implemented automatic fallback from OpenAI to Ollama (local LLM) wh
 
 **Ollama Extraction Method**:
 - New `_extract_with_ollama()` method for local LLM extraction
-- Uses tinyllama model via Ollama API (optimized for low memory ~600MB)
+- Uses phi4-mini model via Ollama API (optimized for low memory ~600MB)
 - Maintains same JSON output format as OpenAI
 
 **Intelligent Fallback Logic**:
@@ -32,7 +32,7 @@ Successfully implemented automatic fallback from OpenAI to Ollama (local LLM) wh
 ### 2. Ollama Initialization
 
 **Created `ollama-init.sh`**:
-- Script to pull tinyllama model on startup (smaller, memory-efficient)
+- Script to pull phi4-mini model on startup (smaller, memory-efficient)
 - Runs in background during container initialization
 
 **Updated `start.sh`**:
@@ -121,7 +121,7 @@ INFO: Ollama successfully extracted 12 controls from chunk 1
 
 ## Performance Comparison
 
-| Metric | OpenAI GPT-4o-mini | Ollama TinyLlama |
+| Metric | OpenAI GPT-4o-mini | Ollama phi4-mini |
 |--------|-------------------|---------------|
 | **Speed** | ~2-5 seconds/chunk | ~10-30 seconds/chunk |
 | **Accuracy** | 95-98% | 75-85% |

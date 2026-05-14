@@ -12,7 +12,7 @@ This file provides planning and architecture guidance for agents working in this
 
 ### PDF Processing Architecture
 - PDFs stored permanently in `./backend/data/pdfs/` (not temporary)
-- Extraction has two-tier fallback: OpenAI → Ollama (tinyllama)
+- Extraction has two-tier fallback: OpenAI → Ollama (phi4-mini)
 - Vector store uses local HuggingFace embeddings (no external dependencies)
 - Re-ingestion possible without re-upload via `/ingest` endpoint
 

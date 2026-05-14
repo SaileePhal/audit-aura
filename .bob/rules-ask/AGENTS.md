@@ -19,7 +19,7 @@ This file provides documentation and explanation guidance for agents working in 
 ### AI Extraction Strategy
 - System tries OpenAI first, automatically falls back to Ollama
 - Fallback is NOT an error condition - it's designed behavior
-- `tinyllama` model used for Ollama (smaller, faster than `mistral`)
+- `phi4-mini` model used for Ollama (smaller, faster than `mistral`)
 - HuggingFace embeddings are free and local (no API key needed)
 
 ### WebSocket Architecture

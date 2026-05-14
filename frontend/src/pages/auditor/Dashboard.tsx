@@ -18,7 +18,7 @@ interface AuditTrailEvent {
 export const AuditorDashboard: React.FC = () => {
   const { complianceScore, violations, fetchDashboard } = useComplianceStore();
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [cloudTrackers, setCloudTrackers] = useState<any[]>([]);
+  const [cloudConnections, setCloudConnections] = useState<any[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditTrailEvent[]>([]);
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -32,8 +32,8 @@ export const AuditorDashboard: React.FC = () => {
       try {
         const response = await fetch('http://localhost:8000/dashboard');
         const data = await response.json();
-        if (data.cloud_event_trackers) {
-          setCloudTrackers(data.cloud_event_trackers);
+        if (data.cloud_connections && Array.isArray(data.cloud_connections)) {
+          setCloudConnections(data.cloud_connections);
         }
       } catch (error) {
         console.error('Failed to fetch cloud trackers:', error);
@@ -146,7 +146,7 @@ export const AuditorDashboard: React.FC = () => {
         })),
         total_violations: violations.length,
         audit_trail_events: auditTrail.length,
-        cloud_trackers: cloudTrackers.length
+        cloud_connections: Array.isArray(cloudConnections) ? cloudConnections.length : 0
       };
 
       // Create downloadable JSON report
@@ -254,46 +254,46 @@ export const AuditorDashboard: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 glass rounded-lg px-3 py-2">
             <Activity className="h-5 w-5 text-purple-400 animate-pulse" />
-            <span className="text-sm font-medium text-dark-900">{cloudTrackers.length} Active</span>
+            <span className="text-sm font-medium text-dark-900">{Array.isArray(cloudConnections) ? cloudConnections.length : 0} Active</span>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cloudTrackers.map((tracker) => (
+          {(Array.isArray(cloudConnections) ? cloudConnections : []).map((connection) => (
             <div
-              key={tracker.id}
+              key={connection.id}
               className="glass-card p-4 hover-lift"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-semibold text-dark-900">{tracker.name}</h4>
-                  <p className="text-xs text-dark-500">{tracker.provider}</p>
+                  <h4 className="font-semibold text-dark-900">{connection.name}</h4>
+                  <p className="text-xs text-dark-500">{connection.provider}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Activity className={`h-4 w-4 ${tracker.health === 'healthy' ? 'text-green-400 animate-pulse' : 'text-red-400'}`} />
-                  <span className={`text-xs font-medium ${tracker.status === 'active' ? 'text-green-400' : 'text-dark-500'}`}>
-                    {tracker.status}
+                  <Activity className={`h-4 w-4 ${connection.health === 'healthy' ? 'text-green-400 animate-pulse' : 'text-red-400'}`} />
+                  <span className={`text-xs font-medium ${connection.status === 'active' ? 'text-green-400' : 'text-dark-500'}`}>
+                    {connection.status}
                   </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-500">Events Monitored:</span>
-                  <span className="font-medium text-dark-900">{tracker.events_monitored.toLocaleString()}</span>
+                  <span className="font-medium text-dark-900">{connection.events_monitored.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-500">Region:</span>
-                  <span className="font-medium text-dark-900">{tracker.region || 'N/A'}</span>
+                  <span className="font-medium text-dark-900">{connection.region || 'N/A'}</span>
                 </div>
                 <div className="text-xs text-dark-600 mt-2">
-                  Last event: {new Date(tracker.last_event).toLocaleTimeString()}
+                  Last event: {new Date(connection.last_event).toLocaleTimeString()}
                 </div>
               </div>
             </div>
           ))}
-          {cloudTrackers.length === 0 && (
+          {(Array.isArray(cloudConnections) ? cloudConnections.length : 0) === 0 && (
             <div className="col-span-full text-center py-8 text-dark-500">
               <Cloud className="h-12 w-12 mx-auto mb-2 text-dark-400" />
-              <p>No cloud event trackers configured</p>
+              <p>No cloud connections configured</p>
             </div>
           )}
         </div>

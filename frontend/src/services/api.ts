@@ -103,6 +103,18 @@ class ApiService {
     });
     return data;
   }
+
+  // Generic GET request
+  async get<T = any>(url: string, params?: Record<string, any>): Promise<T> {
+    const { data } = await this.client.get<T>(url, { params });
+    return data;
+  }
+
+  // Generic POST request
+  async post<T = any>(url: string, body?: any, config?: any): Promise<T> {
+    const { data } = await this.client.post<T>(url, body, config);
+    return data;
+  }
 }
 
 // Export singleton instance

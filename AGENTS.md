@@ -12,7 +12,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ### AI Extraction Fallback Chain
 - OpenAI extraction attempts first, falls back to Ollama (local LLM) on quota/error
-- Ollama uses `tinyllama` model (not `mistral` as config suggests) for extraction
+- Ollama uses `phi4-mini` model (not `mistral` as config suggests) for extraction
 - HuggingFace embeddings (`sentence-transformers/all-MiniLM-L6-v2`) used for vector store (no API key needed)
 - Check `self.ollama_available` in `ComplianceExtractor` before attempting Ollama fallback
 

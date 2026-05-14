@@ -21,7 +21,7 @@ class ComplianceExtractor:
                  lm_studio_host: str = "http://localhost:1234",
                  lm_studio_model: str = "google/gemma-2-9b", lm_studio_enabled: bool = True,
                  ollama_host: str = "http://ollama:11434",
-                 ollama_model: str = "tinyllama", ollama_enabled: bool = False):
+                 ollama_model: str = "phi4-mini", ollama_enabled: bool = False):
         self.openai_enabled = openai_enabled
         self.client = OpenAI(api_key=openai_api_key) if (openai_enabled and openai_api_key) else None
         self.lm_studio_host = lm_studio_host
@@ -33,7 +33,19 @@ class ComplianceExtractor:
         self.ollama_enabled = ollama_enabled
         self.ollama_available = self._check_ollama() if ollama_enabled else False
         
-        # Validate that at least one extraction method is enabled
+        
+        enabled_methods = sum([
+            self.lm_studio_enabled,
+            self.openai_enabled,
+            self.ollama_enabled
+        ])
+
+        if enabled_methods != 1:
+            raise ValueError(
+                "Exactly one extraction method must be enabled"
+            )
+
+# Validate that at least one extraction method is enabled
         if not self.lm_studio_enabled and not self.openai_enabled and not self.ollama_enabled:
             raise ValueError("At least one extraction method must be enabled (LM_STUDIO_ENABLED, OPENAI_ENABLED, or OLLAMA_ENABLED)")
         
@@ -50,24 +62,85 @@ class ComplianceExtractor:
             raise ValueError("Ollama is enabled but not available. Please start Ollama or disable it.")
         elif self.openai_enabled and not self.client:
             raise ValueError("OpenAI is enabled but API key is not configured")
-        self.extraction_prompt = """You are a compliance expert. Extract compliance controls from the provided text.
+        self.extraction_prompt = """
+You are a cybersecurity compliance control extraction engine.
 
-For each control, provide:
-1. control_id: Unique identifier (e.g., "SOC2-CC6.1", "HIPAA-164.308")
-2. description: Clear description of the control requirement
-3. condition: A boolean condition to check compliance (use format: event.field == value)
-4. severity: One of "critical", "high", "medium", "low"
-5. remediation: Steps to fix if violated
-6. category: Control category (e.g., "Access Control", "Data Protection", "Monitoring")
-7. standard: Audit standard name (e.g., "SOC2", "HIPAA", "ISO27001")
+Extract MAXIMUM 5 compliance controls from the text.
 
-Return a JSON object with a "controls" key containing an array of control objects.
+Return ONLY valid JSON.
 
-Example:
-{{"controls": [{{"control_id":"SOC2-CC6.1","description":"S3 buckets must not be publicly accessible","condition":"event.public == False","severity":"critical","remediation":"Update bucket policy to restrict public access","category":"Access Control","standard":"SOC2"}}]}}
+Rules:
+- No markdown
+- No explanations
+- No commentary
+- No prose outside JSON
+- Output must be parseable with json.loads()
 
-Text to analyze:
-{text}"""
+If no controls exist, return:
+{{"controls":[]}}
+
+Required schema:
+
+{{
+  "controls": [
+    {{
+      "control_id": "SOC2-CC6.1",
+      "description": "Clear control description",
+      "condition": "event.field == value",
+      "severity": "critical",
+      "remediation": "Specific remediation action",
+      "category": "Access Control",
+      "standard": "SOC2",
+      "control_type": "preventive",
+      "evidence_required": "Audit evidence",
+      "automatable": true
+    }}
+  ]
+}}
+
+Field rules:
+
+- control_id:
+  Use explicit control ID if available.
+  Otherwise generate:
+  CUSTOM-001
+  CUSTOM-002
+
+- condition:
+  Must be machine-readable.
+  Allowed patterns:
+    event.field == value
+    event.field != value
+    exists(event.field)
+    not exists(event.field)
+    event.field >= value
+    event.field <= value
+
+- severity:
+  Must be one of:
+    critical
+    high
+    medium
+    low
+
+- control_type:
+  Must be one of:
+    preventive
+    detective
+    corrective
+
+- automatable:
+  Must be true or false
+
+- Keep descriptions concise.
+- Keep remediation concise.
+- Avoid duplicate controls.
+- Do not invent unsupported controls.
+- Preserve security intent.
+
+Text:
+{text}
+"""
     
     def _check_lm_studio(self) -> bool:
         """Check if LM Studio is available"""
@@ -88,104 +161,304 @@ Text to analyze:
             logger.warning(f"Ollama not available at {self.ollama_host}: {e}")
             return False
     
-    def _extract_with_ollama(self, text: str) -> List[Dict[str, Any]]:
-        """Extract controls using Ollama (local LLM)"""
-        import json
-        
+    def _extract_with_ollama(self, text: str) -> List[Dict]:
+        """Extract controls using Ollama"""
+
         try:
-            logger.info(f"Using Ollama ({self.ollama_model}) for extraction")
-            
-            prompt = self.extraction_prompt.format(text=text[:2000])  # Limit text for smaller model
-            
+            prompt = self.extraction_prompt.format(text=text)
+
+            logger.info(f"Ollama model: {self.ollama_model}")
+            logger.info(f"Ollama prompt length: {len(prompt)}")
+
             response = requests.post(
                 f"{self.ollama_host}/api/generate",
                 json={
                     "model": self.ollama_model,
                     "prompt": prompt,
                     "stream": False,
-                    "format": "json"
+                    "options": {
+                        "temperature": 0,
+                        "top_p": 0.1,
+                        "num_predict": 250
+                    }
                 },
-                timeout=300  # Increased timeout to 5 minutes for local model
+                timeout=300
             )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result.get("response", "")
-                
-                # Parse JSON response
-                try:
-                    parsed = json.loads(content)
-                    if isinstance(parsed, dict) and 'controls' in parsed:
-                        controls = parsed['controls']
-                        logger.info(f"Ollama extracted {len(controls)} controls")
+
+            logger.error(f"Ollama RAW HTTP response: {response.text}")
+
+            response.raise_for_status()
+
+            response_json = response.json()
+
+            content = response_json.get("response", "")
+
+            logger.error(f"Ollama extracted content: {content}")
+
+            if not content or not content.strip():
+                logger.error("Ollama returned empty content")
+                return []
+
+            # Remove markdown wrappers if present
+            content = re.sub(r"```json|```", "", content).strip()
+
+            try:
+                parsed = json.loads(content)
+
+                logger.info(f"Parsed response type: {type(parsed)}")
+
+                # Case 1: {"controls": [...]}
+                if isinstance(parsed, dict):
+                    if "controls" in parsed:
+                        controls = parsed["controls"]
+
+                        logger.info(
+                            f"Extracted {len(controls)} controls from Ollama"
+                        )
+
                         return controls
-                except json.JSONDecodeError:
-                    logger.error("Failed to parse Ollama response as JSON")
-            
+
+                    logger.warning(
+                        "Parsed JSON object but no 'controls' key found"
+                    )
+
+                    logger.warning(f"Available keys: {list(parsed.keys())}")
+
+                # Case 2: direct array [...]
+                elif isinstance(parsed, list):
+
+                    logger.info(
+                        f"Extracted {len(parsed)} controls from direct array"
+                    )
+
+                    return parsed
+
+                else:
+                    logger.warning(
+                        f"Unexpected parsed type: {type(parsed)}"
+                    )
+
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parse failed: {e}")
+                logger.error(f"Content was: {content}")
+
             return []
-            
+
+        except requests.exceptions.Timeout:
+            logger.error("Ollama request timed out")
+            return []
+
+        except requests.exceptions.ConnectionError:
+            logger.error(
+                f"Could not connect to Ollama at {self.ollama_host}"
+            )
+            return []
+
         except Exception as e:
-            logger.error(f"Ollama extraction failed: {e}")
+            logger.error(f"Ollama extraction failed: {str(e)}")
             return []
-    
-    def _extract_with_lm_studio(self, text: str) -> List[Dict[str, Any]]:
-        """Extract controls using LM Studio (local LLM)"""
+
+
+    def _extract_with_lm_studio(
+        self,
+        text: str
+    ) -> List[Dict[str, Any]]:
+        """Extract controls using LM Studio"""
+
         import json
-        
+        import time
+
         try:
-            logger.info(f"Using LM Studio ({self.lm_studio_model}) for extraction")
-            
-            prompt = self.extraction_prompt.format(text=text[:4000])  # Gemma-2-9b can handle more context
-            
-            # LM Studio uses OpenAI-compatible API
+
+            logger.info(
+                f"Using LM Studio ({self.lm_studio_model})"
+            )
+
+            prompt = self.extraction_prompt.format(
+                text=text
+            )
+
+            payload = {
+                "model": self.lm_studio_model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You extract compliance controls "
+                            "and return ONLY valid JSON."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0,
+                "top_p": 0.1,
+                "max_tokens": 800,
+                "stream": False
+            }
+
+            logger.info("=" * 80)
+            logger.info("LM STUDIO REQUEST")
+            logger.info("=" * 80)
+            logger.info(
+                f"Prompt length: {len(prompt)}"
+            )
+
+            start_time = time.time()
+
             response = requests.post(
                 f"{self.lm_studio_host}/v1/chat/completions",
-                json={
-                    "model": self.lm_studio_model,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a compliance expert that extracts controls from audit documents. Always respond with valid JSON only."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "temperature": 0.1,
-                    "max_tokens": 2000,
-                    "response_format": {"type": "json_object"}
-                },
-                timeout=120
+                json=payload,
+                timeout=600,
+                headers={
+                    "Content-Type": "application/json"
+                }
             )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                
-                # Parse JSON response
-                try:
-                    parsed = json.loads(content)
-                    if isinstance(parsed, dict) and 'controls' in parsed:
-                        controls = parsed['controls']
-                        logger.info(f"LM Studio extracted {len(controls)} controls")
-                        return controls
-                    elif isinstance(parsed, list):
-                        logger.info(f"LM Studio extracted {len(parsed)} controls (direct array)")
-                        return parsed
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse LM Studio response as JSON: {e}")
-                    logger.debug(f"Response content: {content[:500]}")
-            else:
-                logger.error(f"LM Studio request failed with status {response.status_code}: {response.text}")
-            
+
+            elapsed = round(
+                time.time() - start_time,
+                2
+            )
+
+            logger.info(
+                f"LM Studio completed in {elapsed}s"
+            )
+
+            logger.info(
+                f"HTTP Status: {response.status_code}"
+            )
+
+            response.raise_for_status()
+
+            result = response.json()
+
+            logger.info("RAW RESPONSE:")
+            logger.info(
+                json.dumps(result, indent=2)[:5000]
+            )
+
+            finish_reason = (
+                result
+                .get("choices", [{}])[0]
+                .get("finish_reason")
+            )
+
+            logger.info(
+                f"Finish reason: {finish_reason}"
+            )
+
+            if finish_reason == "length":
+                logger.warning(
+                    "Response truncated due to max_tokens"
+                )
+
+            content = (
+                result
+                .get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+            )
+
+            if not content:
+
+                logger.error(
+                    "LM Studio returned empty content"
+                )
+
+                return []
+
+            logger.info("MODEL CONTENT:")
+            logger.info(content[:5000])
+
+            # Remove markdown wrappers
+            cleaned = re.sub(
+                r'```(?:json)?|```',
+                '',
+                content
+            ).strip()
+
+            # Extract JSON object safely
+            start = cleaned.find('{')
+            end = cleaned.rfind('}')
+
+            if start != -1 and end != -1:
+                cleaned = cleaned[start:end + 1]
+
+            logger.info("CLEANED JSON:")
+            logger.info(cleaned[:5000])
+
+            try:
+
+                parsed = json.loads(cleaned)
+
+                # Case 1
+                if (
+                    isinstance(parsed, dict)
+                    and "controls" in parsed
+                ):
+
+                    controls = parsed["controls"]
+
+                    logger.info(
+                        f"Extracted {len(controls)} controls"
+                    )
+
+                    return controls
+
+                # Case 2
+                if isinstance(parsed, list):
+
+                    logger.info(
+                        f"Extracted {len(parsed)} controls"
+                    )
+
+                    return parsed
+
+                logger.error(
+                    "Unexpected JSON structure"
+                )
+
+                return []
+
+            except json.JSONDecodeError as e:
+
+                logger.error(
+                    f"JSON parse failed: {e}"
+                )
+
+                logger.error(
+                    f"Failed JSON:\n{cleaned[:5000]}"
+                )
+
+                return []
+
+        except requests.exceptions.Timeout:
+
+            logger.error(
+                "LM Studio request timed out"
+            )
+
             return []
-            
+
+        except requests.exceptions.ConnectionError as e:
+
+            logger.error(
+                f"LM Studio connection failed: {e}"
+            )
+
+            return []
+
         except Exception as e:
-            logger.error(f"LM Studio extraction failed: {e}")
+
+            logger.exception(
+                f"LM Studio extraction failed: {e}"
+            )
+
             return []
-    
-    
+
+
     def extract_from_pdf_bytes(self, content: bytes) -> List[Dict[str, Any]]:
         """
         Extract controls from PDF bytes
@@ -272,7 +545,7 @@ Text to analyze:
             logger.warning(f"pdfplumber extraction failed: {e}")
             return ""
     
-    def _extract_controls_with_ai(self, text: str, chunk_size: int = 8000) -> List[Dict[str, Any]]:
+    def _extract_controls_with_ai(self, text: str, chunk_size: int = 2000) -> List[Dict[str, Any]]:
         """
         Extract controls from text using AI
         
@@ -296,34 +569,25 @@ Text to analyze:
                 prompt = self.extraction_prompt.format(text=chunk)
                 chunk_controls = None
                 
-                # Use the configured extraction method (no fallbacks)
-                if self.lm_studio_enabled and self.lm_studio_available:
-                    # Use LM Studio
-                    try:
-                        logger.info(f"Using LM Studio for chunk {i+1}")
-                        chunk_controls = self._extract_with_lm_studio(chunk)
-                        if chunk_controls:
-                            logger.info(f"LM Studio extracted {len(chunk_controls)} controls from chunk {i+1}")
-                        else:
-                            logger.error(f"LM Studio returned no controls for chunk {i+1}")
-                    except Exception as e:
-                        logger.error(f"LM Studio extraction failed for chunk {i+1}: {e}")
-                        raise
-                
-                elif self.ollama_enabled and self.ollama_available:
-                    # Use Ollama
-                    try:
-                        logger.info(f"Using Ollama for chunk {i+1}")
-                        chunk_controls = self._extract_with_ollama(chunk)
-                        if chunk_controls:
-                            logger.info(f"Ollama extracted {len(chunk_controls)} controls from chunk {i+1}")
-                        else:
-                            logger.error(f"Ollama returned no controls for chunk {i+1}")
-                    except Exception as e:
-                        logger.error(f"Ollama extraction failed for chunk {i+1}: {e}")
-                        raise
-                
-                elif self.openai_enabled and self.client:
+                # Use only the configured extraction method
+                if self.lm_studio_enabled:
+                    if not self.lm_studio_available:
+                        raise ValueError(
+                            f"LM Studio is enabled but not available at {self.lm_studio_host}"
+                        )
+
+                    logger.info(f"Using LM Studio for chunk {i+1}")
+                    chunk_controls = self._extract_with_lm_studio(chunk)
+
+                elif self.openai_enabled:
+                    if not self.client:
+                        raise ValueError(
+                            "OpenAI is enabled but API key is not configured"
+                        )
+
+                    logger.info(f"Using OpenAI for chunk {i+1}")
+
+
                     # Use OpenAI
                     try:
                         logger.info(f"Using OpenAI for chunk {i+1}")
@@ -426,8 +690,14 @@ Text to analyze:
                         logger.error(f"OpenAI extraction failed for chunk {i+1}: {e}")
                         raise
                 
-                else:
-                    raise ValueError("No extraction method is configured and available")
+                elif self.ollama_enabled:
+                    if not self.ollama_available:
+                        raise ValueError(
+                            f"Ollama is enabled but not available at {self.lm_studio_host}"
+                        )
+
+                    logger.info(f"Using Ollama for chunk {i+1}")
+                    chunk_controls = self._extract_with_ollama(chunk)
                 
                 # Add controls to results
                 if chunk_controls and isinstance(chunk_controls, list):

@@ -1,86 +1,207 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  TrendingUp, TrendingDown, Shield, AlertTriangle,
-  CheckCircle, Clock, Upload, RefreshCw, Activity, Cloud,
-  Server, GitBranch, PlusCircle, FileText, Settings, Bell, Search, Target, Zap
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Cloud,
+  FileText,
+  GitBranch,
+  MoreHorizontal,
+  RefreshCw,
+  Server,
+  Shield,
+  Upload,
 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { theme } from '@/config/theme';
 
-export const AdminDashboard: React.FC = () => {
+interface DashboardKpi {
+  label: string;
+  value: string;
+  tone: 'neutral' | 'critical' | 'warning' | 'success';
+  helper?: string;
+}
+
+interface CollapsibleSectionProps {
+  title: string;
+  description: string;
+  defaultOpen?: boolean;
+  badge?: string;
+  children: React.ReactNode;
+}
+
+interface MetricCardProps {
+  label: string;
+  value: string;
+  helper?: string;
+  tone?: 'neutral' | 'critical' | 'warning' | 'success';
+}
+
+interface SeverityBadgeProps {
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+const sectionCardClassName = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
+const subCardClassName = 'rounded-xl border border-slate-200 bg-slate-50 p-4';
+
+const toneClasses: Record<NonNullable<MetricCardProps['tone']>, string> = {
+  neutral: 'border-slate-200 bg-white text-slate-900',
+  critical: 'border-red-200 bg-red-50 text-red-900',
+  warning: 'border-amber-200 bg-amber-50 text-amber-900',
+  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+};
+
+const severityBadgeClasses: Record<SeverityBadgeProps['severity'], string> = {
+  critical: 'bg-red-100 text-red-800 border border-red-200',
+  high: 'bg-orange-100 text-orange-800 border border-orange-200',
+  medium: 'bg-amber-100 text-amber-800 border border-amber-200',
+  low: 'bg-blue-100 text-blue-800 border border-blue-200',
+};
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  title,
+  description,
+  defaultOpen = false,
+  badge,
+  children,
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <section className={sectionCardClassName}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex w-full items-start justify-between gap-4 text-left"
+      >
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+            {badge ? (
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                {badge}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        </div>
+
+        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500">
+          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </div>
+      </button>
+
+      {isOpen ? <div className="mt-5">{children}</div> : null}
+    </section>
+  );
+};
+
+const MetricCard: React.FC<MetricCardProps> = ({
+  label,
+  value,
+  helper,
+  tone = 'neutral',
+}) => (
+  <div className={`rounded-xl border p-4 shadow-sm ${toneClasses[tone]}`}>
+    <p className="text-sm font-medium text-slate-500">{label}</p>
+    <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
+    {helper ? <p className="mt-1 text-xs text-slate-500">{helper}</p> : null}
+  </div>
+);
+
+const SeverityBadge: React.FC<SeverityBadgeProps> = ({ severity }) => (
+  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${severityBadgeClasses[severity]}`}>
+    {severity}
+  </span>
+);
+
+const AdminDashboard: React.FC = () => {
   const { complianceScore, violations, loading, fetchDashboard, dashboardData } = useComplianceStore();
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [cloudTrackers, setCloudTrackers] = useState<any[]>([]);
+  const [cloudConnections, setCloudConnections] = useState<any[]>([]);
   const [driftData, setDriftData] = useState<any>({
     total_drifts: 0,
     critical_drifts: 0,
     high_drifts: 0,
     medium_drifts: 0,
-    drift_by_source: {}
+    drift_by_source: {},
   });
   const [personaInsights, setPersonaInsights] = useState<any>({
     priority_actions: [],
     kpis: {
       drift_resolution_rate: 0,
-      mean_time_to_detect_drift: "0 hours",
-      mean_time_to_remediate: "0 hours",
-      compliance_score_trend: "stable"
-    }
+      mean_time_to_detect_drift: '0 hours',
+      mean_time_to_remediate: '0 hours',
+      compliance_score_trend: 'stable',
+    },
   });
   const [activeProvider, setActiveProvider] = useState<string>('AWS');
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchData = async () => {
       if (!isMounted) return;
-      
+
       await fetchDashboard();
-      
+
       if (!isMounted) return;
       setLastUpdated(new Date());
-      
-      // Fetch cloud trackers and drift data
+
       try {
         const response = await fetch('http://localhost:8000/dashboard');
         const data = await response.json();
-        
+
         if (!isMounted) return;
-        
-        if (data.cloud_event_trackers) {
-          setCloudTrackers(data.cloud_event_trackers);
+
+        if (data.cloud_connections && Array.isArray(data.cloud_connections)) {
+          setCloudConnections(data.cloud_connections);
         }
+
         if (data.configuration_drift) {
           setDriftData(data.configuration_drift);
         }
+
         if (data.persona_insights?.admin) {
           setPersonaInsights(data.persona_insights.admin);
         }
       } catch (error) {
         if (!isMounted) return;
         console.error('Failed to fetch dashboard data:', error);
-        // Don't use mock data - keep empty state
       }
     };
-    
+
     fetchData();
-    // Refresh every 30 seconds to reduce flakiness
     const interval = setInterval(fetchData, 30000);
-    
+
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount
+  }, [fetchDashboard]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchDashboard();
+    setLastUpdated(new Date());
     setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -100,6 +221,7 @@ export const AdminDashboard: React.FC = () => {
 
       if (response.ok) {
         await fetchDashboard();
+        setLastUpdated(new Date());
         alert('PDF uploaded successfully!');
       } else {
         const error = await response.json();
@@ -118,19 +240,27 @@ export const AdminDashboard: React.FC = () => {
     return <LoadingSpinner fullScreen message="Loading dashboard..." />;
   }
 
-  // Calculate statistics
-  const totalControls = complianceScore?.total_controls || 0;
-  const totalViolations = complianceScore?.total_violations || 0;
-  const overallScore = dashboardData?.compliance_score?.overall_score || (complianceScore / 100) || 0;
+  const totalControls = dashboardData?.compliance_score?.total_controls || 0;
+  const totalViolations = dashboardData?.compliance_score?.total_violations || violations.length || 0;
+  // Handle both decimal (0.78) and percentage (78) formats
+  const overallScore = dashboardData?.compliance_score?.overall_score
+    ? (dashboardData.compliance_score.overall_score > 1
+        ? dashboardData.compliance_score.overall_score / 100
+        : dashboardData.compliance_score.overall_score)
+    : (complianceScore > 1 ? complianceScore / 100 : complianceScore);
   const compliancePercentage = Math.round(overallScore * 100);
+  const criticalDrifts = driftData?.critical_drifts || 0;
+  const highDrifts = driftData?.high_drifts || 0;
+  const unresolvedCriticalAndHigh = criticalDrifts + highDrifts;
 
-  // Prepare chart data
-  const standardsData = Object.entries(dashboardData?.compliance_score?.standards || {}).map(([name, data]: [string, any]) => ({
-    name,
-    score: Math.round(data.score * 100),
-    violations: data.violations,
-    controls: data.controls
-  }));
+  const standardsData = Object.entries(dashboardData?.compliance_score?.standards || {}).map(
+    ([name, data]: [string, any]) => ({
+      name,
+      score: Math.round(data.score * 100),
+      violations: data.violations,
+      controls: data.controls,
+    }),
+  );
 
   const trendData = [
     { time: '00:00', score: 85 },
@@ -142,1212 +272,431 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   const severityData = [
-    { name: 'Critical', value: (violations || []).filter((v: any) => v.severity === 'critical').length, color: '#ef4444' },
-    { name: 'High', value: (violations || []).filter((v: any) => v.severity === 'high').length, color: '#f97316' },
-    { name: 'Medium', value: (violations || []).filter((v: any) => v.severity === 'medium').length, color: '#eab308' },
-    { name: 'Low', value: (violations || []).filter((v: any) => v.severity === 'low').length, color: '#3b82f6' },
+    { name: 'Critical', value: (violations || []).filter((v: any) => v.severity === 'critical').length, color: '#dc2626' },
+    { name: 'High', value: (violations || []).filter((v: any) => v.severity === 'high').length, color: '#ea580c' },
+    { name: 'Medium', value: (violations || []).filter((v: any) => v.severity === 'medium').length, color: '#d97706' },
+    { name: 'Low', value: (violations || []).filter((v: any) => v.severity === 'low').length, color: '#2563eb' },
   ];
 
-  const stats = [
+  const riskStatus = unresolvedCriticalAndHigh > 0 || totalViolations > 0
+    ? unresolvedCriticalAndHigh >= 4 || totalViolations >= 6
+      ? 'high'
+      : 'medium'
+    : 'low';
+
+  const riskBannerClasses = {
+    high: 'border-red-200 bg-red-50 text-red-900',
+    medium: 'border-amber-200 bg-amber-50 text-amber-900',
+    low: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  };
+
+  const riskLabel = riskStatus === 'high' ? 'HIGH RISK' : riskStatus === 'medium' ? 'MODERATE RISK' : 'LOW RISK';
+  const riskMessage = unresolvedCriticalAndHigh > 0
+    ? `${unresolvedCriticalAndHigh} critical drifts unresolved`
+    : totalViolations > 0
+      ? `${totalViolations} active violations require review`
+      : 'No critical drifts currently unresolved';
+
+  const dashboardKpis: DashboardKpi[] = [
     {
-      name: 'Compliance Score',
+      label: 'Compliance Score',
       value: `${compliancePercentage}%`,
-      change: '+2.5%',
-      trend: 'up',
-      icon: Shield,
-      color: 'blue'
+      tone: compliancePercentage >= 90 ? 'success' : compliancePercentage >= 70 ? 'warning' : 'critical',
+      helper: compliancePercentage >= 90 ? 'Strong control posture' : 'Needs continued attention',
     },
     {
-      name: 'Total Controls',
-      value: totalControls.toString(),
-      change: '+12',
-      trend: 'up',
-      icon: CheckCircle,
-      color: 'green'
+      label: 'Active Violations',
+      value: `${totalViolations}`,
+      tone: totalViolations > 0 ? 'critical' : 'success',
+      helper: totalViolations > 0 ? 'Open compliance findings' : 'No open findings',
     },
     {
-      name: 'Active Violations',
-      value: totalViolations.toString(),
-      change: '-3',
-      trend: 'down',
-      icon: AlertTriangle,
-      color: 'red'
+      label: 'Critical Drifts',
+      value: `${criticalDrifts}`,
+      tone: criticalDrifts > 0 ? 'critical' : 'success',
+      helper: `${highDrifts} additional high-severity drifts`,
     },
     {
-      name: 'Last Updated',
-      value: lastUpdated.toLocaleTimeString(),
-      change: 'Just now',
-      trend: 'neutral',
-      icon: Clock,
-      color: 'gray'
+      label: 'Last Updated',
+      value: lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      tone: 'neutral',
+      helper: lastUpdated.toLocaleDateString([], { month: 'short', day: 'numeric' }),
     },
   ];
+
+  const criticalConfigurationDrifts = useMemo(() => {
+    const recentDrifts = Array.isArray(driftData?.recent_drifts) ? driftData.recent_drifts : [];
+
+    return recentDrifts
+      .filter(
+        (drift: any) =>
+          drift &&
+          drift.remediation_status !== 'resolved' &&
+          (drift.severity === 'critical' || drift.severity === 'high'),
+      )
+      .sort((left: any, right: any) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime());
+  }, [driftData]);
+
+  const groupedSources = useMemo(() => {
+    return (Array.isArray(cloudConnections) ? cloudConnections : []).reduce((acc: Record<string, any[]>, connection: any) => {
+      if (!acc[connection.provider]) {
+        acc[connection.provider] = [];
+      }
+      acc[connection.provider].push(connection);
+      return acc;
+    }, {});
+  }, [cloudConnections]);
+
+  const providerNames = Object.keys(groupedSources);
+
+  useEffect(() => {
+    if (!providerNames.length) return;
+    if (!activeProvider || !groupedSources[activeProvider]) {
+      setActiveProvider(providerNames[0]);
+    }
+  }, [activeProvider, groupedSources, providerNames]);
+
+  const activeProviderConnections = groupedSources[activeProvider] || [];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header with improved layout and quick actions */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-cyan-400" />
-            <div>
-              <h1 className={`text-3xl font-bold ${theme.text.primary}`}>Compliance Manager Dashboard</h1>
-              <p className={`${theme.text.secondary} mt-1`}>Strategic oversight: Monitor and manage compliance across your organization</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Live Monitoring Indicator */}
-        <div className="flex items-center gap-2 glass-card px-4 py-2">
-          <div className="relative w-2 h-2">
-            <div className="absolute inset-0 rounded-full bg-green-400 animate-ping"></div>
-            <div className="relative rounded-full w-2 h-2 bg-green-400"></div>
-          </div>
-          <span className="text-sm font-medium text-dark-900">Live Monitoring</span>
-        </div>
-      </div>
-
-      {/* Quick Actions Bar - enhanced with more options */}
-      <div className="flex flex-wrap gap-2">
-
-        {/* Upload PDF with improved UI */}
-        <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileUpload}
-              className="hidden"
-              disabled={uploading}
-            />
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-              ${uploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-700'}
-              text-white text-sm font-medium`}>
-              {uploading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  Upload PDF
-                </>
-              )}
-            </div>
-        </label>
-
-        {/* Refresh button with improved styling */}
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-cyan-500/20 transition-all hover-lift
-            text-sm font-medium ${refreshing ? 'opacity-50' : ''}`}
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
-          <span className="text-dark-900">{refreshing ? 'Refreshing...' : 'Refresh Data'}</span>
-        </button>
-
-        {/* New quick action buttons */}
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-green-500/20 hover-lift
-            text-sm font-medium text-dark-900 transition-all"
-        >
-          <PlusCircle className="h-4 w-4 text-green-400" />
-          Add Standard
-        </button>
-
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-purple-500/20 hover-lift
-            text-sm font-medium text-dark-900 transition-all"
-        >
-          <FileText className="h-4 w-4 text-purple-400" />
-          Generate Report
-        </button>
-
-        <button
-          className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-cyan-500/20 hover-lift
-            text-sm font-medium text-dark-900 transition-all"
-        >
-          <Settings className="h-4 w-4 text-cyan-400" />
-        </button>
-      </div>
-
-      {/* Enhanced Compliance Standards Section */}
-      <div className="glass-card p-6 border-l-4 border-cyan-500 data-stream">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
-              <Target className="h-6 w-6 text-cyan-400" />
-              Compliance Standards Overview
-            </h3>
-            <p className="text-sm text-dark-500 mt-1">Audit frameworks currently monitored across your organization</p>
-          </div>
-          <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
-              rounded-lg hover-lift text-dark-900 transition-all">
-              <PlusCircle className="h-4 w-4 text-green-400" />
-              Add Standard
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-purple-500/20
-              rounded-lg hover-lift text-dark-900 transition-all">
-              <FileText className="h-4 w-4 text-purple-400" />
-              Export
-            </button>
-          </div>
-        </div>
-
-        {standardsData.length > 0 ? (
-          <>
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="glass-card p-4 hover-lift">
-                <div className="text-2xl font-bold text-dark-900">{standardsData.length}</div>
-                <div className="text-xs text-dark-500 mt-1">Total Standards</div>
+    <div className="space-y-6">
+      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                <Shield className="h-5 w-5" />
               </div>
-              <div className="glass-card p-4 hover-lift border-l-2 border-green-500">
-                <div className="text-2xl font-bold text-green-400">
-                  {(standardsData || []).filter(s => s.score >= 90).length}
-                </div>
-                <div className="text-xs text-dark-500 mt-1">Compliant</div>
-              </div>
-              <div className="glass-card p-4 hover-lift border-l-2 border-yellow-500">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {(standardsData || []).filter(s => s.score >= 70 && s.score < 90).length}
-                </div>
-                <div className="text-xs text-dark-500 mt-1">At Risk</div>
-              </div>
-              <div className="glass-card p-4 hover-lift border-l-2 border-red-500">
-                <div className="text-2xl font-bold text-red-400">
-                  {(standardsData || []).filter(s => s.score < 70).length}
-                </div>
-                <div className="text-xs text-dark-500 mt-1">Non-Compliant</div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Executive Compliance Overview</p>
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                  Compliance Manager Dashboard
+                </h1>
               </div>
             </div>
-
-            {/* Standards Grid with improved layout */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {standardsData.map((standard) => (
-                <div
-                  key={standard.name}
-                  className={`glass-card p-4 hover-lift transition-all border-l-4
-                    ${standard.score >= 90 ? 'border-green-500' :
-                      standard.score >= 70 ? 'border-yellow-500' :
-                      'border-red-500'}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {standard.score >= 90 ? (
-                          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        ) : standard.score >= 70 ? (
-                          <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                        )}
-                        <h4 className={`font-semibold ${theme.text.primary}`}>{standard.name}</h4>
-                      </div>
-
-                      <div className="mt-3">
-                        {/* Progress bar with score */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full transition-all duration-500
-                                ${standard.score >= 90 ? 'bg-green-500' :
-                                  standard.score >= 70 ? 'bg-yellow-500' :
-                                  'bg-red-500'}`}
-                              style={{ width: `${standard.score}%` }}
-                            />
-                          </div>
-                          <span className={`text-sm font-medium min-w-[40px] text-center
-                            ${standard.score >= 90 ? 'text-green-700' :
-                              standard.score >= 70 ? 'text-yellow-700' :
-                              'text-red-700'}`}>
-                            {standard.score}%
-                          </span>
-                        </div>
-
-                        {/* Violation and control stats */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <div className={`${theme.text.tertiary}`}>Controls</div>
-                            <div className={`font-medium ${theme.text.primary}`}>{standard.controls}</div>
-                          </div>
-                          <div>
-                            <div className={`${theme.text.tertiary}`}>Violations</div>
-                            <div className={`font-medium
-                              ${standard.violations > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {standard.violations}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status badge */}
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium mt-1
-                      ${standard.score >= 90 ? 'bg-green-100 text-green-800' :
-                        standard.score >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'}`}>
-                      {standard.score >= 90 ? 'Compliant' :
-                       standard.score >= 70 ? 'At Risk' : 'Non-Compliant'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          // Enhanced empty state with action guidance
-          <div className={`text-center py-12 px-4 border-2 border-dashed ${theme.border.primary} rounded-lg ${theme.bg.card}`}>
-            <div className="mx-auto w-fit p-4 bg-blue-50 rounded-full mb-4">
-              <Shield className="h-12 w-12 text-blue-200" />
-            </div>
-            <h4 className={`text-xl font-semibold ${theme.text.primary} mb-2`}>No Compliance Standards Configured</h4>
-            <p className={`${theme.text.secondary} mb-4 max-w-md mx-auto`}>
-              To get started with compliance monitoring, upload a PDF document containing
-              your compliance requirements or frameworks.
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
+              Executive summary of compliance posture, unresolved risk, and the most important actions requiring attention.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-                <div className={`flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-lg
-                  hover:bg-cyan-700 transition-colors font-medium ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                  {uploading ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4" />
-                      Upload Compliance PDF
-                    </>
-                  )}
-                </div>
-              </label>
-              <button className={`flex items-center gap-2 px-5 py-2.5 ${theme.bg.card} border ${theme.border.secondary} ${theme.text.secondary}
-                rounded-lg hover:${theme.bg.secondary} transition-colors font-medium`}>
-                <FileText className="h-4 w-4 text-purple-500" />
-                Learn More
+          </div>
+
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+              <span className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">
+                {uploading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Upload PDF
+                  </>
+                )}
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+
+            <button
+              type="button"
+              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <FileText className="h-4 w-4" />
+              Generate Report
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMoreActions((current) => !current)}
+                className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 shadow-sm transition hover:bg-slate-50"
+                aria-label="More actions"
+              >
+                <MoreHorizontal className="h-4 w-4" />
               </button>
+
+              {showMoreActions ? (
+                <div className="absolute right-0 z-10 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <button
+                    type="button"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Add Standard
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Add Connection
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Export Data
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      </header>
 
-      {/* Enhanced Connected Event Sources Section */}
-      <div className="glass-card p-6 data-stream">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <section className={`rounded-2xl border p-5 shadow-sm sm:p-6 ${riskBannerClasses[riskStatus]}`}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
-              <Server className="h-6 w-6 text-cyan-400" />
-              Cloud Event Monitoring
-            </h3>
-            <p className="text-sm text-dark-500 mt-1">
-              Real-time monitoring of configuration changes across cloud providers
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Overall Risk Status</p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <h2 className="text-2xl font-semibold tracking-tight">{riskLabel}</h2>
+              <span className="text-sm font-medium opacity-90">{riskMessage}</span>
+            </div>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-xl border border-current/10 bg-white/60 px-4 py-3 text-sm font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            {criticalDrifts} critical drifts · {totalViolations} active violations
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {dashboardKpis.map((kpi) => (
+          <MetricCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            helper={kpi.helper}
+            tone={kpi.tone}
+          />
+        ))}
+      </section>
+
+      <section className={sectionCardClassName}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Priority Actions</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Immediate actions surfaced from current compliance posture and drift activity.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
-              <Activity className="h-4 w-4 text-cyan-400 animate-pulse" />
-              <span className="text-sm font-medium text-dark-900">
-                {(cloudTrackers || []).reduce((sum: number, t: any) => sum + (t.events_monitored || 0), 0).toLocaleString()} Events
-              </span>
-            </div>
-            <div className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
-              <Cloud className="h-4 w-4 text-cyan-400" />
-              <span className="text-sm font-medium text-cyan-400">
-                {cloudTrackers.length} {cloudTrackers.length === 1 ? 'Source' : 'Sources'}
-              </span>
-            </div>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
-              rounded-lg hover-lift text-dark-900 transition-all">
-              <PlusCircle className="h-4 w-4 text-green-400" />
-              Add Source
-            </button>
+          <div className="text-sm text-slate-500">
+            {personaInsights.priority_actions?.length || 0} active recommendations
           </div>
         </div>
 
-        {cloudTrackers && cloudTrackers.length > 0 ? (
-          <>
-            {/* Provider Tabs Navigation */}
-            {(() => {
-              const groupedSources = (cloudTrackers || []).reduce((acc: any, tracker: any) => {
-                if (!acc[tracker.provider]) {
-                  acc[tracker.provider] = [];
-                }
-                acc[tracker.provider].push(tracker);
-                return acc;
-              }, {});
-
-              const providers = Object.keys(groupedSources);
-              
-              // Set initial provider if not set
-              if (!activeProvider && providers.length > 0) {
-                setActiveProvider(providers[0]);
-              }
+        <div className="mt-5 space-y-3">
+          {personaInsights.priority_actions?.length > 0 ? (
+            personaInsights.priority_actions.map((action: string, index: number) => {
+              const actionTone =
+                index === 0 ? 'critical' : index === 1 ? 'warning' : 'neutral';
 
               return (
-                <>
-                  {/* Tab Navigation */}
-                  <div className="mb-4">
-                    <div className="flex gap-2 border-b border-white/10">
-                      {providers.map((provider) => (
-                        <button
-                          key={provider}
-                          onClick={() => setActiveProvider(provider)}
-                          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-all
-                            ${activeProvider === provider
-                              ? 'glass-card border-b-2 border-cyan-400 text-dark-900'
-                              : 'text-dark-500 hover:text-dark-900'}`}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Cloud className="h-3.5 w-3.5" />
-                            <span>{provider}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full
-                              ${activeProvider === provider ? 'glass text-cyan-400' : 'glass text-dark-500'}`}>
-                              {groupedSources[provider].length}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Active Provider Content */}
-                  <div className="glass-card rounded-lg">
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <Cloud className="h-5 w-5 text-cyan-400" />
-                          <h4 className="font-semibold text-dark-900">{activeProvider}</h4>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1 text-sm text-dark-900">
-                            <Activity className="h-4 w-4 text-green-400 animate-pulse" />
-                            <span>
-                              {(groupedSources[activeProvider] || []).reduce((sum: number, s: any) => sum + (s.events_monitored || 0), 0)} Events
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm text-orange-400">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>
-                              {(groupedSources[activeProvider] || []).reduce((sum: number, s: any) => sum + (s.config_changes_detected || 0), 0)} Changes
-                            </span>
-                          </div>
-                        </div>
+                <div
+                  key={`${action}-${index}`}
+                  className={`rounded-xl border p-4 shadow-sm ${toneClasses[actionTone as keyof typeof toneClasses]}`}
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                        {index + 1}
                       </div>
-
-                      {/* Health Status Summary */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                        <div className="glass-card p-3 hover-lift border-l-2 border-green-500">
-                          <div className="text-lg font-bold text-green-400">
-                            {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'healthy').length}
-                          </div>
-                          <div className="text-xs text-dark-500">Healthy</div>
-                        </div>
-                        <div className="glass-card p-3 hover-lift border-l-2 border-yellow-500">
-                          <div className="text-lg font-bold text-yellow-400">
-                            {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'warning').length}
-                          </div>
-                          <div className="text-xs text-dark-500">Warning</div>
-                        </div>
-                        <div className="glass-card p-3 hover-lift border-l-2 border-red-500">
-                          <div className="text-lg font-bold text-red-400">
-                            {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'unhealthy').length}
-                          </div>
-                          <div className="text-xs text-dark-500">Unhealthy</div>
-                        </div>
-                        <div className="glass-card p-3 hover-lift border-l-2 border-cyan-500">
-                          <div className="text-lg font-bold text-cyan-400">
-                            {(groupedSources[activeProvider] || []).length}
-                          </div>
-                          <div className="text-xs text-dark-500">Total</div>
-                        </div>
-                      </div>
-
-                      {/* Tracker Cards Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {(groupedSources[activeProvider] || []).map((tracker: any) => (
-                          <div
-                            key={tracker.id}
-                            className={`rounded-lg p-4 border shadow-sm transition-all hover:shadow-md
-                              ${tracker.health === 'healthy' ? 'bg-green-50 border-green-100' :
-                                tracker.health === 'warning' ? 'bg-yellow-50 border-yellow-100' :
-                                'bg-red-50 border-red-100'}`}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className={`w-2 h-2 rounded-full mt-0.5
-                                    ${tracker.health === 'healthy' ? 'bg-green-500' :
-                                      tracker.health === 'warning' ? 'bg-yellow-500' :
-                                      'bg-red-500'}`} />
-                                  <span className={`font-medium ${theme.text.primary}`}>{tracker.region}</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full
-                                    ${tracker.status === 'active' ? 'bg-green-100 text-green-700' :
-                                      `${theme.bg.tertiary} ${theme.text.secondary}`}`}>
-                                    {tracker.status}
-                                  </span>
-                                </div>
-                                <p className={`text-xs ${theme.text.secondary} mb-3 line-clamp-2`}>{tracker.description}</p>
-
-                                {/* Metrics Grid */}
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                  <div>
-                                    <div className={`${theme.text.tertiary} text-xs`}>Events Monitored</div>
-                                    <div className={`font-medium ${theme.text.primary}`}>
-                                      {tracker.events_monitored.toLocaleString()}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className={`${theme.text.tertiary} text-xs`}>Config Changes</div>
-                                    <div className={`font-medium
-                                      ${tracker.config_changes_detected > 0 ? 'text-orange-600' : theme.text.primary}`}>
-                                      {tracker.config_changes_detected}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className={`${theme.text.tertiary} text-xs`}>Last Event</div>
-                                    <div className={`font-medium ${theme.text.primary} text-xs`}>
-                                      {new Date(tracker.last_event).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className={`${theme.text.tertiary} text-xs`}>Health</div>
-                                    <div className={`font-medium capitalize text-xs
-                                      ${tracker.health === 'healthy' ? 'text-green-600' :
-                                        tracker.health === 'warning' ? 'text-yellow-600' :
-                                        'text-red-600'}`}>
-                                      {tracker.health}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div>
+                        <p className="font-medium text-slate-900">{action}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Prioritized from current admin insights and unresolved operational risk.
+                        </p>
                       </div>
                     </div>
-                  </div>
-                </>
-              );
-            })()}
-          </>
-        ) : (
-          <>
-            {/* Enhanced Empty State */}
-            <div className={`text-center py-12 px-4 border-2 border-dashed ${theme.border.primary} rounded-lg ${theme.bg.card}`}>
-            <div className="mx-auto w-fit p-4 bg-cyan-50 rounded-full mb-4">
-              <Cloud className="h-12 w-12 text-cyan-200" />
-            </div>
-            <h4 className={`text-xl font-semibold ${theme.text.primary} mb-2`}>No Cloud Event Sources Configured</h4>
-            <p className={`${theme.text.secondary} mb-6 max-w-md mx-auto`}>
-              Connect your cloud providers to monitor configuration changes in real-time.
-              Supported providers include AWS, Azure, Google Cloud, and Datadog.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-lg
-                hover:bg-cyan-700 transition-colors font-medium">
-                <PlusCircle className="h-4 w-4" />
-                Add Cloud Source
-              </button>
-              <button className={`flex items-center gap-2 px-5 py-2.5 ${theme.bg.card} border ${theme.border.secondary} ${theme.text.secondary}
-                rounded-lg hover:${theme.bg.secondary} transition-colors font-medium`}>
-                <FileText className="h-4 w-4 text-purple-500" />
-                Documentation
-              </button>
-            </div>
-          </div>
-          </>
-        )}
-      </div>
 
-      {/* Enhanced Configuration Drift Detection */}
-      {driftData ? (
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-sm p-6 border border-orange-100">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h3 className={`text-xl font-bold ${theme.text.primary} flex items-center gap-2`}>
-                <GitBranch className="h-6 w-6 text-orange-600" />
-                Configuration Drift Detection
-              </h3>
-              <p className={`text-sm ${theme.text.secondary} mt-1`}>
-                Resources deviating from security baseline with real-time monitoring
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <div className={`flex items-center gap-2 ${theme.bg.card} px-3 py-1.5 rounded-lg border ${theme.border.primary}`}>
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <span className={`text-sm font-medium ${theme.text.secondary}`}>
-                  {driftData.total_drifts} Total Drifts
-                </span>
-              </div>
-              <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-                rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-                <PlusCircle className="h-4 w-4 text-green-500" />
-                Add Rule
-              </button>
-              <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-                rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-                <FileText className="h-4 w-4 text-purple-500" />
-                Export Report
-              </button>
-            </div>
-          </div>
-
-          {/* Drift Summary with improved visuals */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="glass-card p-4 hover-lift border-l-2 border-red-500">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
-                <div className="text-lg font-bold text-red-400">{driftData.critical_drifts}</div>
-              </div>
-              <div className="text-xs text-dark-500 mt-1">Critical Drifts</div>
-              <div className="text-xs text-dark-600 mt-1">
-                {Math.round((driftData.critical_drifts / driftData.total_drifts) * 100 || 0)}% of total
-              </div>
-            </div>
-            <div className="glass-card p-4 hover-lift border-l-2 border-orange-500">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                <div className="text-lg font-bold text-orange-400">{driftData.high_drifts}</div>
-              </div>
-              <div className="text-xs text-dark-500 mt-1">High Severity</div>
-              <div className="text-xs text-dark-600 mt-1">
-                {Math.round((driftData.high_drifts / driftData.total_drifts) * 100 || 0)}% of total
-              </div>
-            </div>
-            <div className="glass-card p-4 hover-lift border-l-2 border-yellow-500">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                <div className="text-lg font-bold text-yellow-400">{driftData.medium_drifts}</div>
-              </div>
-              <div className="text-xs text-dark-500 mt-1">Medium Severity</div>
-              <div className="text-xs text-dark-600 mt-1">
-                {Math.round((driftData.medium_drifts / driftData.total_drifts) * 100 || 0)}% of total
-              </div>
-            </div>
-            <div className="glass-card p-4 hover-lift border-l-2 border-gray-500">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                <div className="text-lg font-bold text-gray-400">
-                  {Object.keys(driftData.drift_by_source || {}).length}
-                </div>
-              </div>
-              <div className="text-xs text-dark-500 mt-1">Affected Sources</div>
-            </div>
-          </div>
-
-          {/* Recent Drifts Table with improved layout */}
-          <div className={`${theme.bg.card} rounded-lg border ${theme.border.primary}`}>
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className={`font-semibold ${theme.text.primary} flex items-center gap-2`}>
-                  <Clock className={`h-4 w-4 ${theme.text.tertiary}`} />
-                  Recent Configuration Drifts
-                </h4>
-                <span className={`text-sm ${theme.text.tertiary}`}>
-                  Showing {Math.min(3, driftData.recent_drifts?.length || 0)} of {driftData.recent_drifts?.length || 0}
-                </span>
-              </div>
-
-              {driftData.recent_drifts?.length > 0 ? (
-                <div className="space-y-3">
-                  {driftData.recent_drifts?.slice(0, 3).map((drift: any, index: number) => (
-                    <div
-                      key={drift.id}
-                      className={`rounded-lg p-4 border-l-4 shadow-sm transition-all
-                        ${drift.severity === 'critical' ? 'border-red-500 bg-red-50' :
-                          drift.severity === 'high' ? 'border-orange-500 bg-orange-50' :
-                          'border-yellow-500 bg-yellow-50'}`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                        {/* Severity and main info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium
-                              ${drift.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                                drift.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                                'bg-yellow-100 text-yellow-700'}`}>
-                              {drift.severity.toUpperCase()}
-                            </span>
-                            <h5 className={`font-medium ${theme.text.primary}`}>{drift.resource_name}</h5>
-                            <span className={`text-xs ${theme.text.tertiary} hidden sm:inline`}>
-                              ({drift.resource_type})
-                            </span>
-                          </div>
-
-                          <p className={`text-sm ${theme.text.secondary} mb-3 line-clamp-2`}>{drift.drift_details}</p>
-
-                          {/* Metrics grid */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs mb-3">
-                            <div>
-                              <div className={`${theme.text.tertiary}`}>Detected By</div>
-                              <div className={`font-medium ${theme.text.primary}`}>{drift.detected_by}</div>
-                            </div>
-                            <div>
-                              <div className={`${theme.text.tertiary}`}>Status</div>
-                              <div className={`font-medium
-                                ${drift.remediation_status === 'resolved' ? 'text-green-600' :
-                                  drift.remediation_status === 'in_progress' ? 'text-cyan-400' :
-                                  'text-orange-600'}`}>
-                                {drift.remediation_status === 'resolved' ? '✓ Resolved' :
-                                 drift.remediation_status === 'in_progress' ? '⟳ In Progress' :
-                                 '⚠ Pending'}
-                              </div>
-                            </div>
-                            <div className="sm:col-span-1">
-                              <div className={`${theme.text.tertiary}`}>Time</div>
-                              <div className={`font-medium ${theme.text.primary}`}>
-                                {new Date(drift.timestamp).toLocaleString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: false
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Compliance impact and actions */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                          {drift.compliance_impact && drift.compliance_impact.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {drift.compliance_impact.slice(0, 3).map((std: string) => (
-                                <span key={std} className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded">
-                                  {std}
-                                </span>
-                              ))}
-                              {drift.compliance_impact.length > 3 && (
-                                <span className={`text-xs ${theme.bg.tertiary} ${theme.text.secondary} px-2 py-0.5 rounded`}>
-                                  +{drift.compliance_impact.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            <button className={`text-xs px-2.5 py-1 ${theme.bg.card} border ${theme.border.secondary}
-                              rounded ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}>
-                              View Details
-                            </button>
-                            <button className={`text-xs px-2.5 py-1 rounded transition-colors
-                              ${drift.remediation_status === 'resolved' ? 'bg-green-100 text-green-700' :
-                                'bg-blue-100 text-cyan-400 hover:bg-blue-200'}`}>
-                              {drift.remediation_status === 'resolved' ? '✓ Resolved' : 'Take Action'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CheckCircle className="h-10 w-10 mx-auto mb-2 text-green-100" />
-                  <p className={`${theme.text.tertiary}`}>No recent configuration drifts detected</p>
-                  <p className={`text-sm ${theme.text.muted} mt-1`}>Your systems are currently compliant with all configurations</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-sm p-6 border border-orange-100">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className={`text-lg font-semibold ${theme.text.primary} flex items-center gap-2`}>
-                <GitBranch className="h-6 w-6 text-orange-600" />
-                Configuration Drift Detection
-              </h3>
-              <p className={`text-sm ${theme.text.secondary} mt-1`}>Resources deviating from security baseline</p>
-            </div>
-          </div>
-
-          {/* Enhanced empty state for drift detection */}
-          <div className={`text-center py-12 px-4 border-2 border-dashed border-orange-200 rounded-lg ${theme.bg.card}`}>
-            <div className="mx-auto w-fit p-4 bg-orange-50 rounded-full mb-4">
-              <GitBranch className="h-12 w-12 text-orange-200" />
-            </div>
-            <h4 className={`text-xl font-semibold ${theme.text.primary} mb-2`}>Drift Monitoring Not Active</h4>
-            <p className={`${theme.text.secondary} mb-4 max-w-md mx-auto`}>
-              Configuration drift detection helps identify resources that have deviated from
-              your security baseline. Connect your systems to enable this feature.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-lg
-                hover:bg-cyan-700 transition-colors font-medium">
-                <PlusCircle className="h-4 w-4" />
-                Setup Drift Monitoring
-              </button>
-              <button className={`flex items-center gap-2 px-5 py-2.5 ${theme.bg.card} border ${theme.border.secondary} ${theme.text.secondary}
-                rounded-lg hover:${theme.bg.secondary} transition-colors font-medium`}>
-                <FileText className="h-4 w-4 text-purple-500" />
-                Learn More
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Priority Actions Section */}
-      {personaInsights ? (
-        <div className="glass-card p-6 border-l-4 border-purple-500 data-stream">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
-                <Shield className="h-6 w-6 text-purple-400" />
-                Priority Actions Center
-              </h3>
-              <p className="text-sm text-dark-500 mt-1">
-                Strategic items requiring your immediate attention and action
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
-                rounded-lg hover-lift text-dark-900 transition-all">
-                <PlusCircle className="h-4 w-4 text-green-400" />
-                Add Action
-              </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-purple-500/20
-                rounded-lg hover-lift text-dark-900 transition-all">
-                <FileText className="h-4 w-4 text-purple-400" />
-                Export Report
-              </button>
-            </div>
-          </div>
-
-          {/* Priority Actions List with enhanced UI */}
-          <div className="space-y-2 mb-6">
-            <h4 className={`font-semibold ${theme.text.primary} mb-3 flex items-center gap-2`}>
-              <Bell className="h-4 w-4 text-amber-500" />
-              Immediate Attention Required
-            </h4>
-
-            {personaInsights.priority_actions?.length > 0 ? (
-              <div className="space-y-3">
-                {personaInsights.priority_actions?.map((action: string, index: number) => (
-                  <div
-                    key={index}
-                    className={`flex items-start gap-3 p-4 rounded-lg border-l-4 ${theme.bg.card}
-                      ${index === 0 ? 'border-red-500 bg-red-50' :
-                        index === 1 ? 'border-amber-500 bg-amber-50' :
-                        'border-blue-500 bg-blue-50'}`}
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                      text-sm font-bold text-white
-                      ${index === 0 ? 'bg-red-500' :
-                        index === 1 ? 'bg-amber-500' :
-                        'bg-blue-500'}" >
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${theme.text.primary}`}>{action}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className={`text-xs px-3 py-1 ${theme.bg.card} border ${theme.border.secondary}
-                        rounded ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                      >
                         View Details
                       </button>
-                      <button className="text-xs px-3 py-1 bg-purple-600 text-white
-                        rounded hover:bg-purple-700 transition-colors">
+                      <button
+                        type="button"
+                        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                      >
                         Take Action
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className={`text-center py-8 ${theme.bg.card} rounded-lg border border-dashed ${theme.border.primary}`}>
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-100" />
-                <p className={`${theme.text.tertiary}`}>No priority actions at this time</p>
-                <p className={`text-sm ${theme.text.muted}`}>Your systems are currently up to date</p>
-              </div>
-            )}
-          </div>
-
-          {/* KPIs with enhanced visuals */}
-          {personaInsights.kpis && (
-            <div className={`${theme.bg.card} rounded-lg border ${theme.border.primary} p-5`}>
-              <h4 className={`font-semibold ${theme.text.primary} mb-4 flex items-center gap-2`}>
-                <Activity className="h-4 w-4 text-purple-500" />
-                Performance Metrics
-              </h4>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {/* Resolution Rate */}
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    <div className="text-2xl font-bold text-purple-700">
-                      {personaInsights.kpis.drift_resolution_rate}%
-                    </div>
-                  </div>
-                  <div className={`text-xs ${theme.text.secondary}`}>Resolution Rate</div>
-                  <div className={`text-xs ${theme.text.tertiary} mt-1`}>
-                    {personaInsights.kpis.drift_resolution_rate >= 80 ?
-                      'Excellent performance' :
-                      personaInsights.kpis.drift_resolution_rate >= 60 ?
-                      'Good performance' : 'Needs improvement'}
-                  </div>
                 </div>
-
-                {/* Mean Time to Detect */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    <div className="text-2xl font-bold text-cyan-400">
-                      {personaInsights.kpis.mean_time_to_detect_drift}
-                    </div>
-                  </div>
-                  <div className={`text-xs ${theme.text.secondary}`}>Mean Time to Detect</div>
-                  <div className={`text-xs ${theme.text.tertiary} mt-1`}>
-                    {parseFloat(personaInsights.kpis.mean_time_to_detect_drift) < 2 ?
-                      'Fast detection' :
-                      parseFloat(personaInsights.kpis.mean_time_to_detect_drift) < 5 ?
-                      'Average detection' : 'Slow detection'}
-                  </div>
-                </div>
-
-                {/* Mean Time to Remediate */}
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <div className="text-2xl font-bold text-green-700">
-                      {personaInsights.kpis.mean_time_to_remediate}
-                    </div>
-                  </div>
-                  <div className={`text-xs ${theme.text.secondary}`}>Mean Time to Remediate</div>
-                  <div className={`text-xs ${theme.text.tertiary} mt-1`}>
-                    {parseFloat(personaInsights.kpis.mean_time_to_remediate) < 4 ?
-                      'Fast remediation' :
-                      parseFloat(personaInsights.kpis.mean_time_to_remediate) < 8 ?
-                      'Average remediation' : 'Slow remediation'}
-                  </div>
-                </div>
-
-                {/* Compliance Score Trend */}
-                <div className={`p-4 rounded-lg border-2
-                  ${personaInsights.kpis.compliance_score_trend === 'declining' ?
-                    'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-2 h-2 rounded-full
-                      ${personaInsights.kpis.compliance_score_trend === 'declining' ?
-                        'bg-red-500' : 'bg-green-500'}`}></div>
-                    <div className={`text-2xl font-bold
-                      ${personaInsights.kpis.compliance_score_trend === 'declining' ?
-                        'text-red-700' : 'text-green-700'}`}>
-                      {personaInsights.kpis.compliance_score_trend === 'declining' ? '↓' : '↑'}
-                    </div>
-                  </div>
-                  <div className={`text-xs ${theme.text.secondary}`}>Compliance Score Trend</div>
-                  <div className={`text-xs mt-1
-                    ${personaInsights.kpis.compliance_score_trend === 'declining' ?
-                      'text-red-600' : 'text-green-600'}`}>
-                    {personaInsights.kpis.compliance_score_trend === 'declining' ?
-                      'Declining - needs attention' : 'Improving - good progress'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      {/* Enhanced Stats Grid with improved visual hierarchy */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          const colorClasses = {
-            blue: {
-              gradient: 'from-blue-500/10 to-cyan-500/10',
-              border: 'border-blue-500/20',
-              text: 'text-blue-400',
-              iconColor: 'text-blue-400'
-            },
-            green: {
-              gradient: 'from-green-500/10 to-emerald-500/10',
-              border: 'border-green-500/20',
-              text: 'text-green-400',
-              iconColor: 'text-green-400'
-            },
-            red: {
-              gradient: 'from-red-500/10 to-orange-500/10',
-              border: 'border-red-500/20',
-              text: 'text-red-400',
-              iconColor: 'text-red-400'
-            },
-            gray: {
-              gradient: 'from-gray-500/10 to-slate-500/10',
-              border: 'border-gray-500/20',
-              text: 'text-gray-400',
-              iconColor: 'text-gray-400'
-            }
-          };
-
-          const colors = colorClasses[stat.color as keyof typeof colorClasses];
-
-          return (
-            <div
-              key={stat.name}
-              className={`metric-card bg-gradient-to-br ${colors.gradient} ${colors.border} hover-lift group animate-slideUp`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl glass-strong">
-                  <Icon className={`h-6 w-6 ${colors.iconColor}`} />
-                </div>
-                {stat.trend !== 'neutral' && (
-                  stat.trend === 'up' ? (
-                    <TrendingUp className={`h-5 w-5 ${colors.iconColor} group-hover:scale-110 transition-transform`} />
-                  ) : (
-                    <TrendingDown className={`h-5 w-5 ${colors.iconColor} group-hover:scale-110 transition-transform`} />
-                  )
-                )}
-              </div>
-              <h3 className="text-3xl font-bold text-dark-900 mb-1">
-                {stat.value}
-              </h3>
-              <p className="text-dark-500 text-sm">{stat.name}</p>
-              {stat.trend !== 'neutral' && (
-                <div className={`flex items-center text-xs font-medium mt-2
-                  ${stat.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-                  {stat.change} {stat.trend === 'up' ? 'increase' : 'decrease'}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Enhanced Charts Grid with improved visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Enhanced Compliance Trend Chart */}
-        <div className={`glass-card p-6 data-stream border-l-4 ${compliancePercentage >= 90 ? 'border-green-500' :
-          compliancePercentage >= 70 ? 'border-yellow-500' : 'border-red-500'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Compliance Trend (24h)</h3>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${compliancePercentage >= 90 ? 'bg-green-500' :
-                compliancePercentage >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm font-medium">
-                {compliancePercentage >= 90 ? 'Excellent' :
-                 compliancePercentage >= 70 ? 'Good' : 'Needs Attention'}
-              </span>
-            </div>
-          </div>
-
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-              <defs>
-                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="time"
-                stroke="#6b7280"
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="#6b7280"
-                domain={[0, 100]}
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-                labelStyle={{ color: '#1f2937' }}
-                itemStyle={{ color: '#1f2937' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="score"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{
-                  fill: '#3b82f6',
-                  stroke: '#ffffff',
-                  strokeWidth: 2,
-                  r: 5
-                }}
-                activeDot={{
-                  r: 8,
-                  fill: '#3b82f6',
-                  stroke: '#ffffff',
-                  strokeWidth: 2
-                }}
-                fill="url(#trendGradient)"
-              />
-              {/* Reference lines for compliance thresholds */}
-              <ReferenceLine y={90} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Excellent', position: 'insideTopRight', fill: '#10b981' }} />
-              <ReferenceLine y={70} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: 'Good', position: 'insideTopRight', fill: '#f59e0b' }} />
-              <ReferenceLine y={50} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Poor', position: 'insideTopRight', fill: '#ef4444' }} />
-            </LineChart>
-          </ResponsiveContainer>
-
-          {/* Current score display */}
-          <div className="mt-4 flex items-center justify-between pt-4 border-t border-gray-100">
-            <div>
-              <p className={`text-sm ${theme.text.tertiary}`}>Current Score</p>
-              <p className={`text-2xl font-bold ${theme.text.primary}`}>{compliancePercentage}%</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm">
-                <p className={`${theme.text.tertiary}`}>24h Change</p>
-                <p className={`font-medium ${compliancePercentage - trendData[0].score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {compliancePercentage - trendData[0].score >= 0 ? '+' : ''}
-                  {Math.abs(compliancePercentage - trendData[0].score)}%
-                </p>
-              </div>
-              <div className="flex items-center gap-1 text-sm">
-                <Clock className={`h-4 w-4 ${theme.text.muted}`} />
-                <span className={`${theme.text.tertiary}`}>
-                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Violations by Severity Chart */}
-        <div className={`${theme.bg.card} rounded-xl shadow-sm p-6 border-t-4 border-red-500`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Violations by Severity</h3>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <span className={`text-sm font-medium ${theme.text.secondary}`}>
-                {totalViolations} Total
-              </span>
-            </div>
-          </div>
-
-          {totalViolations > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={severityData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {severityData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      stroke="#ffffff"
-                      strokeWidth={2}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                  labelStyle={{ color: '#1f2937' }}
-                  itemStyle={{ color: '#1f2937' }}
-                  formatter={(value, name, props) => [
-                    `${value} violations (${Math.round((value / totalViolations) * 100)}%)`,
-                    name
-                  ]}
-                />
-                {/* Center label */}
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={`text-lg font-bold ${theme.text.secondary}`}
-                >
-                  {totalViolations}
-                </text>
-                <text
-                  x="50%"
-                  y="60%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={`text-xs ${theme.text.tertiary}`}
-                >
-                  Total Violations
-                </text>
-              </PieChart>
-            </ResponsiveContainer>
+              );
+            })
           ) : (
-            <div className="flex flex-col items-center justify-center h-[300px]">
-              <CheckCircle className="h-12 w-12 text-green-100 mb-2" />
-              <p className={`${theme.text.tertiary}`}>No violations detected</p>
-              <p className={`text-sm ${theme.text.muted}`}>Your systems are currently compliant</p>
+            <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+              No priority actions at this time. Current monitoring data does not indicate urgent executive follow-up.
             </div>
           )}
+        </div>
 
-          {/* Severity legend */}
-          <div className="mt-4 flex justify-center gap-6 pt-4 border-t border-gray-100">
-            {severityData.map((item, index) => (
-              <div key={index} className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className={`text-xs ${theme.text.secondary}`}>
-                  {item.name}: {item.value} ({Math.round((item.value / totalViolations) * 100) || 0}%)
-                </span>
-              </div>
-            ))}
+        {personaInsights.kpis ? (
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              label="Resolution Rate"
+              value={`${personaInsights.kpis.drift_resolution_rate}%`}
+              helper="Drifts resolved within operational targets"
+              tone="success"
+            />
+            <MetricCard
+              label="Mean Time to Detect"
+              value={personaInsights.kpis.mean_time_to_detect_drift}
+              helper="Average time to identify drift"
+              tone="neutral"
+            />
+            <MetricCard
+              label="Mean Time to Remediate"
+              value={personaInsights.kpis.mean_time_to_remediate}
+              helper="Average remediation duration"
+              tone="neutral"
+            />
+            <MetricCard
+              label="Score Trend"
+              value={personaInsights.kpis.compliance_score_trend === 'declining' ? 'Declining' : 'Improving'}
+              helper="Directional posture signal"
+              tone={personaInsights.kpis.compliance_score_trend === 'declining' ? 'critical' : 'success'}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      <section className={sectionCardClassName}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Critical Configuration Drifts</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Unresolved critical and high-severity configuration drifts, newest first.
+            </p>
+          </div>
+          <div className="text-sm text-slate-500">
+            {criticalConfigurationDrifts.length} unresolved critical/high items
           </div>
         </div>
 
-        {/* Enhanced Standards Compliance Chart */}
-        <div className={`${theme.bg.card} rounded-xl shadow-sm p-6 lg:col-span-2 border-t-4 border-blue-500`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Compliance by Standard</h3>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-500" />
-              <span className={`text-sm font-medium ${theme.text.secondary}`}>
-                {standardsData.length} Standards
-              </span>
+        <div className="mt-5 space-y-3">
+          {criticalConfigurationDrifts.length > 0 ? (
+            criticalConfigurationDrifts.map((drift: any) => (
+              <div
+                key={drift.id}
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SeverityBadge severity={drift.severity} />
+                      <h3 className="font-semibold text-slate-900">{drift.resource_name}</h3>
+                      <span className="text-sm text-slate-500">{drift.resource_type}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{drift.drift_details}</p>
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected By</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">{drift.detected_by}</p>
+                      </div>
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</p>
+                        <p className="mt-1 text-sm font-medium capitalize text-slate-900">
+                          {drift.remediation_status.replace('_', ' ')}
+                        </p>
+                      </div>
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">
+                          {new Date(drift.timestamp).toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {drift.compliance_impact?.length ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {drift.compliance_impact.map((standard: string) => (
+                          <span
+                            key={standard}
+                            className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
+                          >
+                            {standard}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                    >
+                      Take Action
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+              No unresolved critical or high-severity configuration drifts detected.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <div className={sectionCardClassName}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Compliance Trend</h2>
+              <p className="mt-1 text-sm text-slate-500">24-hour compliance score movement.</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-slate-500">Current Score</p>
+              <p className="text-2xl font-semibold text-slate-900">{compliancePercentage}%</p>
             </div>
           </div>
 
-          {standardsData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={standardsData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <div className="mt-5 h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendData} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
-                  dataKey="name"
-                  stroke="#6b7280"
-                  tick={{ fontSize: 12, angle: -15, textAnchor: 'end' }}
+                  dataKey="time"
+                  stroke="#64748b"
+                  tick={{ fontSize: 12 }}
                   tickLine={false}
                   axisLine={false}
-                  interval={0}
                 />
                 <YAxis
-                  stroke="#6b7280"
+                  stroke="#64748b"
                   domain={[0, 100]}
                   tick={{ fontSize: 12 }}
                   tickLine={false}
@@ -1356,237 +705,427 @@ export const AdminDashboard: React.FC = () => {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
                   }}
-                  labelStyle={{ color: '#1f2937' }}
-                  itemStyle={{ color: '#1f2937' }}
-                  formatter={(value, name, props) => [
-                    name === 'score' ? `${value}% compliance` : `${value} violations`,
-                    name
-                  ]}
+                  labelStyle={{ color: '#0f172a' }}
+                  itemStyle={{ color: '#0f172a' }}
                 />
-                <Legend
-                  wrapperStyle={{ paddingTop: '20px' }}
-                  formatter={(value) => (
-                    <span className="text-sm capitalize">
-                      {value === 'score' ? 'Compliance Score' :
-                       value === 'violations' ? 'Violations Count' : value}
-                    </span>
-                  )}
-                />
-                <Bar
+                <ReferenceLine y={90} stroke="#16a34a" strokeDasharray="4 4" />
+                <ReferenceLine y={70} stroke="#d97706" strokeDasharray="4 4" />
+                <Line
+                  type="monotone"
                   dataKey="score"
-                  fill="#3b82f6"
-                  name="Compliance Score"
-                  radius={[8, 8, 0, 0]}
-                  barSize={20}
-                >
-                  {standardsData.map((entry, index) => (
-                    <Cell
-                      key={`cell-score-${index}`}
-                      fill={entry.score >= 90 ? '#10b981' :
-                            entry.score >= 70 ? '#f59e0b' : '#ef4444'}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="violations"
-                  fill="#ef4444"
-                  name="Violations"
-                  radius={[8, 8, 0, 0]}
-                  barSize={20}
+                  stroke="#0f172a"
+                  strokeWidth={3}
+                  dot={{ fill: '#0f172a', stroke: '#ffffff', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#0f172a', stroke: '#ffffff', strokeWidth: 2 }}
                 />
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[300px]">
-              <Shield className="h-12 w-12 text-blue-100 mb-2" />
-              <p className={`${theme.text.tertiary}`}>No compliance standards configured</p>
-              <p className={`text-sm ${theme.text.muted}`}>Upload a PDF to get started with compliance monitoring</p>
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Enhanced Recent Violations Section */}
-      <div className={`${theme.bg.card} rounded-xl shadow-sm p-6 border-t-4 border-red-500`}>
-        <div className="flex items-center justify-between mb-6">
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">24h Change</p>
+              <p className={`mt-1 text-sm font-semibold ${compliancePercentage - trendData[0].score >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                {compliancePercentage - trendData[0].score >= 0 ? '+' : ''}
+                {Math.abs(compliancePercentage - trendData[0].score)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Threshold</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">70% operational baseline</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Updated</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={sectionCardClassName}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Violations by Severity</h2>
+              <p className="mt-1 text-sm text-slate-500">Current open violations by severity tier.</p>
+            </div>
+            <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">
+              {totalViolations} total
+            </div>
+          </div>
+
+          <div className="mt-5 h-[300px]">
+            {totalViolations > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={severityData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={62}
+                    outerRadius={92}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {severityData.map((entry, index) => (
+                      <Cell
+                        key={`severity-${index}`}
+                        fill={entry.color}
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
+                    }}
+                    labelStyle={{ color: '#0f172a' }}
+                    itemStyle={{ color: '#0f172a' }}
+                    formatter={(value, name) => [
+                      `${value} violations (${Math.round((Number(value) / totalViolations) * 100)}%)`,
+                      name,
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 text-center">
+                <CheckCircle className="h-10 w-10 text-emerald-600" />
+                <p className="mt-3 text-sm font-medium text-emerald-800">No violations detected</p>
+                <p className="mt-1 text-sm text-emerald-700">Current standards are operating without open findings.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
+            {severityData.map((item) => (
+              <div key={item.name} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-600">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                  {item.name}
+                </div>
+                <span className="font-medium text-slate-900">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={sectionCardClassName}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h3 className={`text-xl font-bold ${theme.text.primary} flex items-center gap-2`}>
-              <AlertTriangle className="h-6 w-6 text-red-500" />
-              Recent Violations
-            </h3>
-            <p className={`text-sm ${theme.text.secondary} mt-1`}>
-              Latest compliance violations requiring your attention
+            <h2 className="text-xl font-semibold text-slate-900">Standards Overview</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Framework-level compliance summary with score and violation count.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <span className="text-sm font-medium text-red-700">
-                {violations.length} {violations.length === 1 ? 'Violation' : 'Violations'}
-              </span>
-            </div>
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-              rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-              <FileText className="h-4 w-4 text-purple-500" />
-              Export Report
-            </button>
-          </div>
+          <div className="text-sm text-slate-500">{standardsData.length} standards tracked</div>
         </div>
 
-        {violations.length > 0 ? (
-          <>
-            {/* Severity distribution summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-                <div className="text-lg font-bold text-red-700">
-                  {(violations || []).filter((v: any) => v.severity === 'critical').length}
+        {standardsData.length > 0 ? (
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {standardsData.map((standard) => (
+              <div key={standard.name} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{standard.name}</h3>
+                    <p className="mt-1 text-sm text-slate-500">Compliance framework</p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      standard.score >= 90
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : standard.score >= 70
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {standard.score}%
+                  </span>
                 </div>
-                <div className={`text-xs ${theme.text.secondary}`}>Critical</div>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                <div className="text-lg font-bold text-orange-700">
-                  {(violations || []).filter((v: any) => v.severity === 'high').length}
+
+                <div className="mt-4 flex items-end justify-between">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Violations</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{standard.violations}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Controls</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">{standard.controls}</p>
+                  </div>
                 </div>
-                <div className={`text-xs ${theme.text.secondary}`}>High</div>
               </div>
-              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                <div className="text-lg font-bold text-yellow-700">
-                  {(violations || []).filter((v: any) => v.severity === 'medium').length}
-                </div>
-                <div className={`text-xs ${theme.text.secondary}`}>Medium</div>
-              </div>
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <div className="text-lg font-bold text-cyan-400">
-                  {(violations || []).filter((v: any) => v.severity === 'low').length}
-                </div>
-                <div className={`text-xs ${theme.text.secondary}`}>Low</div>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+            <Shield className="mx-auto h-10 w-10 text-slate-400" />
+            <p className="mt-3 text-sm font-medium text-slate-700">No compliance standards configured</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Upload a compliance PDF to populate standards and framework tracking.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <CollapsibleSection
+        title="Cloud Event Monitoring"
+        description="Real-time monitoring of connected cloud providers and event sources."
+        badge={`${Array.isArray(cloudConnections) ? cloudConnections.length : 0} connections`}
+      >
+        {providerNames.length > 0 ? (
+          <div className="space-y-5">
+            <div className="flex flex-wrap gap-2">
+              {providerNames.map((provider) => (
+                <button
+                  key={provider}
+                  type="button"
+                  onClick={() => setActiveProvider(provider)}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    activeProvider === provider
+                      ? 'bg-slate-900 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {provider} ({groupedSources[provider].length})
+                </button>
+              ))}
             </div>
 
-            {/* Violations list with enhanced UI */}
-            <div className="space-y-3">
-              {violations.slice(0, 5).map((violation: any, index: number) => {
-                // Determine severity color
-                const severityColors = {
-                  critical: { bg: 'bg-red-50', border: 'border-red-500', text: 'text-red-700' },
-                  high: { bg: 'bg-orange-50', border: 'border-orange-500', text: 'text-orange-700' },
-                  medium: { bg: 'bg-yellow-50', border: 'border-yellow-500', text: 'text-yellow-700' },
-                  low: { bg: 'bg-blue-50', border: 'border-blue-500', text: 'text-cyan-400' }
-                };
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="Events Monitored"
+                value={`${activeProviderConnections.reduce((sum: number, item: any) => sum + (item.events_monitored || 0), 0)}`}
+                helper="Across selected provider"
+              />
+              <MetricCard
+                label="Config Changes"
+                value={`${activeProviderConnections.reduce((sum: number, item: any) => sum + (item.config_changes_detected || 0), 0)}`}
+                helper="Detected recent changes"
+                tone="warning"
+              />
+              <MetricCard
+                label="Healthy"
+                value={`${activeProviderConnections.filter((item: any) => item.health === 'healthy').length}`}
+                helper="Healthy sources"
+                tone="success"
+              />
+              <MetricCard
+                label="Unhealthy"
+                value={`${activeProviderConnections.filter((item: any) => item.health === 'unhealthy').length}`}
+                helper="Sources requiring review"
+                tone={activeProviderConnections.filter((item: any) => item.health === 'unhealthy').length > 0 ? 'critical' : 'neutral'}
+              />
+            </div>
 
-                const colors = severityColors[violation.severity as keyof typeof severityColors] ||
-                              severityColors.medium;
-
-                return (
-                  <div
-                    key={index}
-                    className={`rounded-lg border-l-4 p-4 transition-all hover:shadow-md
-                      ${colors.bg} ${colors.border}`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      {/* Violation details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
-                          <div>
-                            <h4 className={`font-medium ${colors.text}`}>{violation.control_id}</h4>
-                            <p className={`text-sm ${theme.text.secondary} mt-0.5`}>{violation.description}</p>
-                          </div>
-                        </div>
-
-                        {/* Additional metadata */}
-                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <div className={`${theme.text.tertiary}`}>Severity</div>
-                            <div className={`font-medium capitalize ${colors.text}`}>
-                              {violation.severity}
-                            </div>
-                          </div>
-                          <div>
-                            <div className={`${theme.text.tertiary}`}>Detected</div>
-                            <div className={`font-medium ${theme.text.primary}`}>
-                              {new Date(violation.timestamp).toLocaleString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          </div>
-                          {violation.resource && (
-                            <div className="sm:col-span-1">
-                              <div className={`${theme.text.tertiary}`}>Resource</div>
-                              <div className={`font-medium ${theme.text.primary} truncate`}>
-                                {violation.resource}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {activeProviderConnections.map((connection: any) => (
+                <div key={connection.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Cloud className="h-4 w-4 text-slate-500" />
+                        <h4 className="font-semibold text-slate-900">{connection.region}</h4>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-600">
+                          {connection.status}
+                        </span>
                       </div>
+                      <p className="mt-2 text-sm text-slate-500">{connection.description}</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                      connection.health === 'healthy'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : connection.health === 'warning'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-red-100 text-red-800'
+                    }`}>
+                      {connection.health}
+                    </span>
+                  </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-0">
-                        <button className={`text-xs px-3 py-1.5 ${theme.bg.card} border ${theme.border.secondary}
-                          rounded ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}>
-                          View Details
-                        </button>
-                        <button className={`text-xs px-3 py-1.5 rounded transition-colors
-                          ${colors.text.replace('text-', 'bg-')} bg-opacity-10
-                          ${colors.text} hover:bg-opacity-20`}>
-                          Take Action
-                        </button>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className={subCardClassName}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Events</p>
+                      <p className="mt-1 font-semibold text-slate-900">{connection.events_monitored.toLocaleString()}</p>
+                    </div>
+                    <div className={subCardClassName}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Changes</p>
+                      <p className="mt-1 font-semibold text-slate-900">{connection.config_changes_detected}</p>
+                    </div>
+                    <div className={subCardClassName}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Last Event</p>
+                      <p className="mt-1 font-semibold text-slate-900">
+                        {new Date(connection.last_event).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <div className={subCardClassName}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Provider</p>
+                      <p className="mt-1 font-semibold text-slate-900">{connection.provider}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+            <Server className="mx-auto h-10 w-10 text-slate-400" />
+            <p className="mt-3 text-sm font-medium text-slate-700">No cloud event sources configured</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Connect a cloud provider to monitor configuration changes in real time.
+            </p>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Recent Violations"
+        description="Latest compliance violations captured from monitored systems."
+        badge={`${violations.length} items`}
+      >
+        {violations.length > 0 ? (
+          <div className="space-y-3">
+            {violations.slice(0, 5).map((violation: any, index: number) => (
+              <div key={`${violation.control_id}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SeverityBadge severity={violation.severity} />
+                      <h4 className="font-semibold text-slate-900">{violation.control_id}</h4>
+                      <span className="text-sm text-slate-500">{violation.standard}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{violation.description}</p>
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Detected</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                          {new Date(violation.timestamp).toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">{violation.category || 'Compliance'}</p>
+                      </div>
+                      <div className={subCardClassName}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                          {violation.resolved ? 'Resolved' : 'Open'}
+                        </p>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Show more button if there are more violations */}
-            {violations.length > 5 && (
-              <div className="mt-4 text-center">
-                <button className={`flex items-center gap-1.5 mx-auto px-4 py-2 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-                  rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-                  Show {violations.length - 5} more violations
-                  <AlertTriangle className={`h-4 w-4 ${theme.text.tertiary}`} />
-                </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                    >
+                      Take Action
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </>
+            ))}
+          </div>
         ) : (
-          <>
-            {/* Enhanced empty state */}
-            <div className="text-center py-12 px-4 border-2 border-dashed border-green-200 rounded-lg">
-            <div className="mx-auto w-fit p-4 bg-green-50 rounded-full mb-4">
-              <CheckCircle className="h-12 w-12 text-green-200" />
-            </div>
-            <h4 className={`text-xl font-semibold ${theme.text.primary} mb-2`}>No Violations Detected</h4>
-            <p className={`${theme.text.secondary} mb-4 max-w-md mx-auto`}>
-              Your systems are currently compliant with all configured standards.
-              Great job maintaining security and compliance!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg
-                hover:bg-green-700 transition-colors font-medium">
-                <Shield className="h-4 w-4" />
-                View Compliance Report
-              </button>
-              <button className={`flex items-center gap-2 px-5 py-2.5 ${theme.bg.card} border ${theme.border.secondary} ${theme.text.secondary}
-                rounded-lg hover:${theme.bg.secondary} transition-colors font-medium`}>
-                <FileText className="h-4 w-4 text-purple-500" />
-                Export Summary
-              </button>
+          <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+            No recent violations detected across monitored standards.
+          </div>
+        )}
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Audit Logs"
+        description="Operational summary for executive review based on current dashboard activity."
+        badge="Summary"
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Last Refresh" value={lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} helper="Dashboard sync time" />
+          <MetricCard label="Total Controls" value={`${totalControls}`} helper="Controls currently tracked" />
+          <MetricCard label="Standards" value={`${standardsData.length}`} helper="Frameworks represented" />
+          <MetricCard label="Drift Sources" value={`${Object.keys(driftData?.drift_by_source || {}).length}`} helper="Sources with observed drift" />
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Infrastructure Details"
+        description="Underlying infrastructure and monitoring source details."
+        badge={`${Object.keys(driftData?.drift_by_source || {}).length} sources`}
+      >
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <GitBranch className="h-4 w-4" />
+              Drift by Source
+            </h4>
+            <div className="mt-4 space-y-3">
+              {Object.keys(driftData?.drift_by_source || {}).length > 0 ? (
+                Object.entries(driftData.drift_by_source).map(([source, count]: [string, any]) => (
+                  <div key={source} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <span className="text-sm font-medium text-slate-700">{source}</span>
+                    <span className="text-sm font-semibold text-slate-900">{count}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No drift source breakdown available.</p>
+              )}
             </div>
           </div>
-          </>
-        )}
-      </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h4 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <Clock className="h-4 w-4" />
+              Monitoring Snapshot
+            </h4>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-sm font-medium text-slate-700">Connections</span>
+                <span className="text-sm font-semibold text-slate-900">{cloudConnections.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-sm font-medium text-slate-700">Total Drifts</span>
+                <span className="text-sm font-semibold text-slate-900">{driftData?.total_drifts || 0}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-sm font-medium text-slate-700">Medium Drifts</span>
+                <span className="text-sm font-semibold text-slate-900">{driftData?.medium_drifts || 0}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-sm font-medium text-slate-700">Active Provider</span>
+                <span className="text-sm font-semibold text-slate-900">{activeProvider || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
     </div>
   );
 };
+
+export { AdminDashboard };
 
 // Made with Bob

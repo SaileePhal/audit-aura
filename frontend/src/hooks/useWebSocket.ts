@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { wsService } from '@/services/websocket';
 import { useComplianceStore } from '@/store/useComplianceStore';
 
 export const useWebSocket = () => {
+  const [lastMessage, setLastMessage] = useState<string | null>(null);
   const addAlert = useComplianceStore((state) => state.addAlert);
   const decrementScore = useComplianceStore((state) => state.decrementScore);
   const fetchDashboard = useComplianceStore((state) => state.fetchDashboard);
@@ -13,8 +14,11 @@ export const useWebSocket = () => {
 
     // Subscribe to messages
     const unsubscribeMessage = wsService.onMessage((data) => {
+      // Store raw message for external handling (e.g., skill acquisition)
+      setLastMessage(JSON.stringify(data));
+      
       // Handle different message types
-      if (data.type === 'violation') {
+      if (data.type === 'violation' || data.type === 'violation_detected') {
         addAlert(data);
         // Decrease score based on severity
         const scoreDecrease = {
@@ -32,6 +36,9 @@ export const useWebSocket = () => {
       } else if (data.type === 'refresh') {
         // Refresh dashboard data
         fetchDashboard();
+      } else if (data.type === 'skills_acquired') {
+        // Skills acquired message - handled by App.tsx
+        console.log('Skills acquired:', data.data?.skills);
       } else {
         // Legacy format - treat as violation
         addAlert(data);
@@ -65,6 +72,7 @@ export const useWebSocket = () => {
   return {
     isConnected: wsService.isConnected(),
     send: (message: string) => wsService.send(message),
+    lastMessage,
   };
 };
 

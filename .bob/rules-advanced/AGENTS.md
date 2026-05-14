@@ -13,7 +13,7 @@ This file provides advanced coding guidance for agents working in this repositor
 ### PDF Processing Chain
 - PDFs saved to `./backend/data/pdfs/` automatically (not temp files)
 - Extraction tries OpenAI first, falls back to Ollama on error
-- `ComplianceExtractor._extract_with_ollama()` uses `tinyllama` model (hardcoded, not from config)
+- `ComplianceExtractor._extract_with_ollama()` uses `phi4-mini` model (hardcoded, not from config)
 - Vector store uses HuggingFace embeddings (no API key needed)
 
 ### Safe Rule Evaluation

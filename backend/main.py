@@ -154,7 +154,14 @@ async def startup_event():
         
         # Initialize compliance tracker
         tracker = get_tracker()
-        logger.info("Compliance tracker initialized")
+        
+        # Load controls from vector store and register with tracker
+        controls = vector_store.get_all_controls() if vector_store else []
+        if controls:
+            tracker.register_controls(controls)
+            logger.info(f"Compliance tracker initialized with {len(controls)} controls")
+        else:
+            logger.info("Compliance tracker initialized (no controls loaded)")
         
         # Initialize skill-based detection system
         detection_system = get_detection_system()
@@ -239,9 +246,9 @@ async def upload_pdf(file: UploadFile = File(...)):
         # Register controls with tracker
         tracker.register_controls(controls)
         
-        # Initialize/reload detection system with new controls
+        # Initialize/reload detection system with new controls (broadcast new skills)
         if detection_system:
-            await detection_system.reload_controls(controls)
+            await detection_system.reload_controls(controls, broadcast_new_skills=True)
             logger.info("Detection system reloaded with new controls")
         
         # Get unique standards
@@ -482,6 +489,136 @@ async def list_stored_pdfs():
         logger.error(f"Error listing PDFs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/skills")
+async def get_skills():
+    """
+    Get all agent skills with their metadata
+    
+    Returns:
+        List of skills with enable/disable state
+    """
+    try:
+        from models.skill import get_skill_persistence
+        
+        skill_persistence = get_skill_persistence()
+        skills = skill_persistence.list_all()
+        stats = skill_persistence.get_stats()
+        
+        return {
+            "success": True,
+            "skills": [skill.to_dict() for skill in skills],
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching skills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/skills/{skill_id}/enable")
+async def enable_skill(skill_id: str):
+    """
+    Enable a specific skill
+    
+    Args:
+        skill_id: ID of the skill to enable
+        
+    Returns:
+        Success status
+    """
+    try:
+        from models.skill import get_skill_persistence
+        
+        skill_persistence = get_skill_persistence()
+        success = skill_persistence.enable_skill(skill_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Skill '{skill_id}' not found")
+        
+        # Reload detection system to apply changes
+        if detection_system:
+            vector_store_instance = get_vector_store()
+            controls = []
+            if hasattr(vector_store_instance, 'controls_map'):
+                controls = list(vector_store_instance.controls_map.values())
+            
+            if controls:
+                await detection_system.reload_controls(controls, broadcast_new_skills=False)
+        
+        # Broadcast skill state change
+        await ws_manager.broadcast({
+            'type': 'skill_state_changed',
+            'data': {
+                'skill_id': skill_id,
+                'enabled': True,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        })
+        
+        return {
+            "success": True,
+            "message": f"Skill '{skill_id}' enabled successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error enabling skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/skills/{skill_id}/disable")
+async def disable_skill(skill_id: str):
+    """
+    Disable a specific skill
+    
+    Args:
+        skill_id: ID of the skill to disable
+        
+    Returns:
+        Success status
+    """
+    try:
+        from models.skill import get_skill_persistence
+        
+        skill_persistence = get_skill_persistence()
+        success = skill_persistence.disable_skill(skill_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Skill '{skill_id}' not found")
+        
+        # Reload detection system to apply changes
+        if detection_system:
+            vector_store_instance = get_vector_store()
+            controls = []
+            if hasattr(vector_store_instance, 'controls_map'):
+                controls = list(vector_store_instance.controls_map.values())
+            
+            if controls:
+                await detection_system.reload_controls(controls, broadcast_new_skills=False)
+        
+        # Broadcast skill state change
+        await ws_manager.broadcast({
+            'type': 'skill_state_changed',
+            'data': {
+                'skill_id': skill_id,
+                'enabled': False,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        })
+        
+        return {
+            "success": True,
+            "message": f"Skill '{skill_id}' disabled successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error disabling skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @app.get("/controls")
 async def get_controls(standard: Optional[str] = None):
@@ -550,7 +687,7 @@ async def get_dashboard():
                 "compliance_score": mock_service.get_compliance_scores(live=True),
                 "violations": mock_service.get_violations(),
                 "standards": mock_service.get_standards(),
-                "cloud_event_trackers": mock_service.get_cloud_event_trackers(),
+                "cloud_connections": mock_service.get_cloud_event_trackers(),
                 "configuration_drift": mock_service._data.get("configuration_drift"),
                 "persona_insights": mock_service._data.get("persona_insights"),
                 "recent_events": mock_service.get_recent_events(limit=10),
@@ -562,25 +699,41 @@ async def get_dashboard():
             score_data = tracker.get_compliance_score()
             violations_list = tracker.get_all_violations()
             
-            # Get event source status
-            dynamic_source_manager = get_dynamic_source_manager()
-            source_status = dynamic_source_manager.get_source_status()
+            # Get cloud connections from connection manager
+            from infrastructure.cloud.connection_manager import get_connection_manager
+            connection_manager = get_connection_manager()
+            connections = connection_manager.list_connections()
+            
+            # Format connections for dashboard (similar to mock data format)
+            cloud_connections = []
+            for conn in connections:
+                cloud_connections.append({
+                    "id": conn.id,
+                    "name": conn.name,
+                    "provider": conn.provider.value,
+                    "status": conn.status.value,
+                    "enabled": conn.enabled,
+                    "events_processed": conn.events_processed,
+                    "last_event_at": conn.last_event_at.isoformat() if conn.last_event_at else None,
+                    "error_count": conn.error_count,
+                    "last_error": conn.last_error,
+                    "created_at": conn.created_at.isoformat() if conn.created_at else None,
+                    "updated_at": conn.updated_at.isoformat() if conn.updated_at else None
+                })
             
             dashboard_data = {
                 "compliance_score": score_data,
                 "violations": violations_list,
                 "standards": score_data.get("standards", {}),
-                "cloud_event_trackers": {
-                    "total_sources": source_status["total_sources"],
-                    "active_sources": source_status["active_sources"],
-                    "sources": source_status["sources"]
-                },
+                "cloud_connections": cloud_connections,
                 "recent_events": [],  # Would come from event aggregator
                 "security_metrics": {
                     "total_violations": len(violations_list),
                     "critical_violations": len([v for v in violations_list if v.get("severity") == "critical"]),
                     "high_violations": len([v for v in violations_list if v.get("severity") == "high"])
-                }
+                },
+                "persona_insights": None,
+                "configuration_drift": None
             }
         
         return dashboard_data
@@ -723,7 +876,7 @@ async def continuous_monitoring():
         try:
             controls = vector_store.get_all_controls() if vector_store else []
             if controls:
-                await detection_system.initialize(controls)
+                await detection_system.initialize(controls, broadcast_new_skills=True)
                 logger.info(f"Detection system initialized with {len(controls)} controls")
         except Exception as e:
             logger.error(f"Failed to initialize detection system: {e}")

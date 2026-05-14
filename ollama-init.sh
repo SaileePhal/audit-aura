@@ -1,10 +1,17 @@
 #!/bin/bash
-# Initialize Ollama with tinyllama model (smaller, ~600MB)
 
-echo "Waiting for Ollama service to be ready..."
+echo "Waiting for Ollama service..."
 sleep 5
 
-echo "Pulling tinyllama model (optimized for low memory)..."
-docker exec aegis-ai-ollama-1 ollama pull tinyllama
+MODEL="phi4-mini"
+
+echo "Checking if model exists..."
+
+if docker exec aegis-ai-ollama-1 ollama list | grep -q "$MODEL"; then
+    echo "Model already cached: $MODEL"
+else
+    echo "Pulling model: $MODEL"
+    docker exec aegis-ai-ollama-1 ollama pull $MODEL
+fi
 
 echo "Ollama initialization complete!"

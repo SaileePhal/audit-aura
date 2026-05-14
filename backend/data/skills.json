@@ -1,0 +1,62 @@
+{
+  "detect_soc2_net_001": {
+    "skill_id": "detect_soc2_net_001",
+    "name": "Detect: Implement network security controls such as firewa",
+    "description": "Implement network security controls such as firewalls and IDS.",
+    "category": "detection",
+    "control_id": "SOC2-NET-001",
+    "standard": "SOC2",
+    "severity": "critical",
+    "enabled": true,
+    "created_at": "2026-05-14T19:46:28.546131",
+    "updated_at": "2026-05-14T19:46:28.546141"
+  },
+  "detect_soc2_acc_001": {
+    "skill_id": "detect_soc2_acc_001",
+    "name": "Detect: Enforce authentication and authorization controls.",
+    "description": "Enforce authentication and authorization controls.",
+    "category": "detection",
+    "control_id": "SOC2-ACC-001",
+    "standard": "SOC2",
+    "severity": "critical",
+    "enabled": true,
+    "created_at": "2026-05-14T19:46:28.547316",
+    "updated_at": "2026-05-14T19:46:28.547320"
+  },
+  "detect_soc2_enc_001": {
+    "skill_id": "detect_soc2_enc_001",
+    "name": "Detect: Encrypt sensitive data at rest and in transit.",
+    "description": "Encrypt sensitive data at rest and in transit.",
+    "category": "detection",
+    "control_id": "SOC2-ENC-001",
+    "standard": "SOC2",
+    "severity": "critical",
+    "enabled": true,
+    "created_at": "2026-05-14T19:46:28.547958",
+    "updated_at": "2026-05-14T19:46:28.547962"
+  },
+  "detect_soc2_mon_001": {
+    "skill_id": "detect_soc2_mon_001",
+    "name": "Detect: Deploy monitoring tools for suspicious activity de",
+    "description": "Deploy monitoring tools for suspicious activity detection.",
+    "category": "detection",
+    "control_id": "SOC2-MON-001",
+    "standard": "SOC2",
+    "severity": "high",
+    "enabled": true,
+    "created_at": "2026-05-14T19:46:28.548549",
+    "updated_at": "2026-05-14T19:46:28.548553"
+  },
+  "detect_soc2_aud_001": {
+    "skill_id": "detect_soc2_aud_001",
+    "name": "Detect: Perform regular internal audits.",
+    "description": "Perform regular internal audits.",
+    "category": "detection",
+    "control_id": "SOC2-AUD-001",
+    "standard": "SOC2",
+    "severity": "high",
+    "enabled": true,
+    "created_at": "2026-05-14T19:46:28.549459",
+    "updated_at": "2026-05-14T19:46:28.549462"
+  }
+}

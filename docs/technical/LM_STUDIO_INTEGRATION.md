@@ -20,7 +20,7 @@ This document describes the integration of LM Studio (running google/gemma-2-9b)
    - Timeout: Default
 
 3. **Ollama (Tertiary Fallback)** - Local LLM
-   - Model: `tinyllama`
+   - Model: `phi4-mini`
    - Used when both LM Studio and OpenAI fail
    - Context window: 2000 characters per chunk
 
@@ -194,7 +194,7 @@ Or stop LM Studio server. The system should automatically fall back to OpenAI.
   - No API costs
   - No rate limits
   - Privacy (local processing)
-  - Larger context window (4000 chars vs 2000 for tinyllama)
+  - Larger context window (4000 chars vs 2000 for phi4-mini)
 - **Cons**: 
   - Requires local GPU/CPU resources
   - Slower than cloud APIs
@@ -211,7 +211,7 @@ Or stop LM Studio server. The system should automatically fall back to OpenAI.
   - Requires internet connection
   - Privacy concerns (data sent to cloud)
 
-### Ollama (tinyllama)
+### Ollama (phi4-mini)
 - **Pros**: 
   - No API costs
   - Runs in Docker container
