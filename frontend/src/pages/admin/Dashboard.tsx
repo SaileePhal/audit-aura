@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   TrendingUp, TrendingDown, Shield, AlertTriangle,
   CheckCircle, Clock, Upload, RefreshCw, Activity, Cloud,
-  Server, GitBranch, PlusCircle, FileText, Settings, Bell, Search
+  Server, GitBranch, PlusCircle, FileText, Settings, Bell, Search, Target, Zap
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useComplianceStore } from '../../store/useComplianceStore';
@@ -14,72 +14,21 @@ export const AdminDashboard: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [cloudTrackers, setCloudTrackers] = useState<any[]>([
-    {
-      id: "cloudwatch-us-east-1",
-      name: "AWS CloudWatch",
-      provider: "AWS",
-      type: "cloudwatch",
-      instance: "us-east-1",
-      status: "active",
-      events_monitored: 15234,
-      config_changes_detected: 342,
-      last_event: new Date().toISOString(),
-      health: "healthy",
-      region: "us-east-1",
-      description: "Monitoring AWS CloudTrail events for configuration changes"
-    },
-    {
-      id: "azure-monitor-eastus",
-      name: "Azure Monitor",
-      provider: "Microsoft Azure",
-      type: "azure_monitor",
-      instance: "eastus",
-      status: "active",
-      events_monitored: 12890,
-      config_changes_detected: 289,
-      last_event: new Date().toISOString(),
-      health: "healthy",
-      region: "eastus",
-      description: "Monitoring Azure Activity Log for resource changes"
-    },
-    {
-      id: "gcp-cloud-logging-us-central1",
-      name: "GCP Cloud Logging",
-      provider: "Google Cloud",
-      type: "gcp_logging",
-      instance: "us-central1",
-      status: "active",
-      events_monitored: 9234,
-      config_changes_detected: 201,
-      last_event: new Date().toISOString(),
-      health: "healthy",
-      region: "us-central1",
-      description: "Monitoring GCP Cloud Audit Logs for configuration changes"
-    }
-  ]);
+  const [cloudTrackers, setCloudTrackers] = useState<any[]>([]);
   const [driftData, setDriftData] = useState<any>({
-    total_drifts: 12,
-    critical_drifts: 3,
-    high_drifts: 5,
-    medium_drifts: 4,
-    drift_by_source: {
-      cloudwatch: 4,
-      azure_monitor: 2,
-      gcp_logging: 1
-    }
+    total_drifts: 0,
+    critical_drifts: 0,
+    high_drifts: 0,
+    medium_drifts: 0,
+    drift_by_source: {}
   });
   const [personaInsights, setPersonaInsights] = useState<any>({
-    priority_actions: [
-      "Review 3 critical configuration drifts requiring immediate attention",
-      "Approve remediation plans for 5 high-severity drifts",
-      "Schedule compliance review meeting for drifted controls"
-    ],
+    priority_actions: [],
     kpis: {
-      drift_resolution_rate: 67,
-      mean_time_to_detect_drift: "2.3 hours",
-      mean_time_to_remediate: "8.5 hours",
-      compliance_score_trend: "declining"
+      drift_resolution_rate: 0,
+      mean_time_to_detect_drift: "0 hours",
+      mean_time_to_remediate: "0 hours",
+      compliance_score_trend: "stable"
     }
   });
   const [activeProvider, setActiveProvider] = useState<string>('AWS');
@@ -113,77 +62,8 @@ export const AdminDashboard: React.FC = () => {
         }
       } catch (error) {
         if (!isMounted) return;
-        
         console.error('Failed to fetch dashboard data:', error);
-        // Use mock data on error
-        setCloudTrackers([
-          {
-            id: "cloudwatch-us-east-1",
-            name: "AWS CloudWatch",
-            provider: "AWS",
-            type: "cloudwatch",
-            instance: "us-east-1",
-            status: "active",
-            events_monitored: 15234,
-            config_changes_detected: 342,
-            last_event: new Date().toISOString(),
-            health: "healthy",
-            region: "us-east-1",
-            description: "Monitoring AWS CloudTrail events for configuration changes"
-          },
-          {
-            id: "azure-monitor-eastus",
-            name: "Azure Monitor",
-            provider: "Microsoft Azure",
-            type: "azure_monitor",
-            instance: "eastus",
-            status: "active",
-            events_monitored: 12890,
-            config_changes_detected: 289,
-            last_event: new Date().toISOString(),
-            health: "healthy",
-            region: "eastus",
-            description: "Monitoring Azure Activity Log for resource changes"
-          },
-          {
-            id: "gcp-cloud-logging-us-central1",
-            name: "GCP Cloud Logging",
-            provider: "Google Cloud",
-            type: "gcp_logging",
-            instance: "us-central1",
-            status: "active",
-            events_monitored: 9234,
-            config_changes_detected: 201,
-            last_event: new Date().toISOString(),
-            health: "healthy",
-            region: "us-central1",
-            description: "Monitoring GCP Cloud Audit Logs for configuration changes"
-          }
-        ]);
-        setDriftData({
-          total_drifts: 12,
-          critical_drifts: 3,
-          high_drifts: 5,
-          medium_drifts: 4,
-          drift_by_source: {
-            cloudwatch: 4,
-            azure_monitor: 2,
-            gcp_logging: 1
-          }
-        });
-        setPersonaInsights({
-          priority_actions: [
-            "Review 3 critical configuration drifts requiring immediate attention",
-            "Approve remediation plans for 5 high-severity drifts",
-            "Schedule compliance review meeting for drifted controls"
-          ],
-          kpis: {
-            drift_resolution_rate: 67,
-            mean_time_to_detect_drift: "2.3 hours",
-            mean_time_to_remediate: "8.5 hours",
-            compliance_score_trend: "declining"
-          }
-        });
+        // Don't use mock data - keep empty state
       }
     };
     
@@ -317,10 +197,21 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions Bar - enhanced with more options */}
-        <div className="flex flex-wrap gap-2">
-          {/* Upload PDF with improved UI */}
-          <label className="cursor-pointer">
+        {/* Live Monitoring Indicator */}
+        <div className="flex items-center gap-2 glass-card px-4 py-2">
+          <div className="relative w-2 h-2">
+            <div className="absolute inset-0 rounded-full bg-green-400 animate-ping"></div>
+            <div className="relative rounded-full w-2 h-2 bg-green-400"></div>
+          </div>
+          <span className="text-sm font-medium text-dark-900">Live Monitoring</span>
+        </div>
+      </div>
+
+      {/* Quick Actions Bar - enhanced with more options */}
+      <div className="flex flex-wrap gap-2">
+
+        {/* Upload PDF with improved UI */}
+        <label className="cursor-pointer">
             <input
               type="file"
               accept=".pdf"
@@ -343,65 +234,63 @@ export const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
-          </label>
+        </label>
 
-          {/* Refresh button with improved styling */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all
-              ${refreshing ? `${theme.bg.tertiary} ${theme.border.secondary}` : `${theme.bg.card} ${theme.border.secondary} hover:${theme.bg.secondary}`}
-              text-sm font-medium ${theme.text.secondary}`}
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin text-blue-500' : theme.text.tertiary}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Data'}
-          </button>
+        {/* Refresh button with improved styling */}
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-cyan-500/20 transition-all hover-lift
+            text-sm font-medium ${refreshing ? 'opacity-50' : ''}`}
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+          <span className="text-dark-900">{refreshing ? 'Refreshing...' : 'Refresh Data'}</span>
+        </button>
 
-          {/* New quick action buttons */}
-          <button
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${theme.bg.card} border ${theme.border.secondary}
-              text-sm font-medium ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}
-          >
-            <PlusCircle className="h-4 w-4 text-green-500" />
-            Add Standard
-          </button>
+        {/* New quick action buttons */}
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-green-500/20 hover-lift
+            text-sm font-medium text-dark-900 transition-all"
+        >
+          <PlusCircle className="h-4 w-4 text-green-400" />
+          Add Standard
+        </button>
 
-          <button
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${theme.bg.card} border ${theme.border.secondary}
-              text-sm font-medium ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}
-          >
-            <FileText className="h-4 w-4 text-purple-500" />
-            Generate Report
-          </button>
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-lg glass-card border border-purple-500/20 hover-lift
+            text-sm font-medium text-dark-900 transition-all"
+        >
+          <FileText className="h-4 w-4 text-purple-400" />
+          Generate Report
+        </button>
 
-          <button
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg ${theme.bg.card} border ${theme.border.secondary}
-              text-sm font-medium ${theme.text.secondary} hover:${theme.bg.secondary} transition-colors`}
-          >
-            <Settings className={`h-4 w-4 ${theme.text.tertiary}`} />
-          </button>
-        </div>
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-cyan-500/20 hover-lift
+            text-sm font-medium text-dark-900 transition-all"
+        >
+          <Settings className="h-4 w-4 text-cyan-400" />
+        </button>
       </div>
 
       {/* Enhanced Compliance Standards Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-sm p-6 border border-blue-100">
+      <div className="glass-card p-6 border-l-4 border-cyan-500 data-stream">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="flex-1">
-            <h3 className={`text-xl font-bold ${theme.text.primary} flex items-center gap-2`}>
-              <Shield className="h-6 w-6 text-cyan-400" />
+            <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
+              <Target className="h-6 w-6 text-cyan-400" />
               Compliance Standards Overview
             </h3>
-            <p className={`text-sm ${theme.text.secondary} mt-1`}>Audit frameworks currently monitored across your organization</p>
+            <p className="text-sm text-dark-500 mt-1">Audit frameworks currently monitored across your organization</p>
           </div>
           <div className="flex gap-2">
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-              rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-              <PlusCircle className="h-4 w-4 text-green-500" />
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
+              rounded-lg hover-lift text-dark-900 transition-all">
+              <PlusCircle className="h-4 w-4 text-green-400" />
               Add Standard
             </button>
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-              rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-              <FileText className="h-4 w-4 text-purple-500" />
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-purple-500/20
+              rounded-lg hover-lift text-dark-900 transition-all">
+              <FileText className="h-4 w-4 text-purple-400" />
               Export
             </button>
           </div>
@@ -411,27 +300,27 @@ export const AdminDashboard: React.FC = () => {
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className={`${theme.bg.card} p-4 rounded-lg border ${theme.border.primary}`}>
-                <div className={`text-2xl font-bold ${theme.text.primary}`}>{standardsData.length}</div>
-                <div className={`text-xs ${theme.text.tertiary} mt-1`}>Total Standards</div>
+              <div className="glass-card p-4 hover-lift">
+                <div className="text-2xl font-bold text-dark-900">{standardsData.length}</div>
+                <div className="text-xs text-dark-500 mt-1">Total Standards</div>
               </div>
-              <div className={`${theme.bg.card} p-4 rounded-lg border ${theme.border.primary}`}>
-                <div className="text-2xl font-bold text-green-600">
+              <div className="glass-card p-4 hover-lift border-l-2 border-green-500">
+                <div className="text-2xl font-bold text-green-400">
                   {(standardsData || []).filter(s => s.score >= 90).length}
                 </div>
-                <div className={`text-xs ${theme.text.tertiary} mt-1`}>Compliant</div>
+                <div className="text-xs text-dark-500 mt-1">Compliant</div>
               </div>
-              <div className={`${theme.bg.card} p-4 rounded-lg border ${theme.border.primary}`}>
-                <div className="text-2xl font-bold text-yellow-600">
+              <div className="glass-card p-4 hover-lift border-l-2 border-yellow-500">
+                <div className="text-2xl font-bold text-yellow-400">
                   {(standardsData || []).filter(s => s.score >= 70 && s.score < 90).length}
                 </div>
-                <div className={`text-xs ${theme.text.tertiary} mt-1`}>At Risk</div>
+                <div className="text-xs text-dark-500 mt-1">At Risk</div>
               </div>
-              <div className={`${theme.bg.card} p-4 rounded-lg border ${theme.border.primary}`}>
-                <div className="text-2xl font-bold text-red-600">
+              <div className="glass-card p-4 hover-lift border-l-2 border-red-500">
+                <div className="text-2xl font-bold text-red-400">
                   {(standardsData || []).filter(s => s.score < 70).length}
                 </div>
-                <div className={`text-xs ${theme.text.tertiary} mt-1`}>Non-Compliant</div>
+                <div className="text-xs text-dark-500 mt-1">Non-Compliant</div>
               </div>
             </div>
 
@@ -440,10 +329,10 @@ export const AdminDashboard: React.FC = () => {
               {standardsData.map((standard) => (
                 <div
                   key={standard.name}
-                  className={`${theme.bg.card} rounded-lg p-4 border-2 shadow-sm transition-all hover:shadow-md
-                    ${standard.score >= 90 ? 'border-green-200 hover:border-green-300' :
-                      standard.score >= 70 ? 'border-yellow-200 hover:border-yellow-300' :
-                      'border-red-200 hover:border-red-300'}`}
+                  className={`glass-card p-4 hover-lift transition-all border-l-4
+                    ${standard.score >= 90 ? 'border-green-500' :
+                      standard.score >= 70 ? 'border-yellow-500' :
+                      'border-red-500'}`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -554,33 +443,33 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Enhanced Connected Event Sources Section */}
-      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl shadow-sm p-6 border border-cyan-100">
+      <div className="glass-card p-6 data-stream">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h3 className={`text-xl font-bold ${theme.text.primary} flex items-center gap-2`}>
-              <Server className="h-6 w-6 text-cyan-600" />
+            <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
+              <Server className="h-6 w-6 text-cyan-400" />
               Cloud Event Monitoring
             </h3>
-            <p className={`text-sm ${theme.text.secondary} mt-1`}>
+            <p className="text-sm text-dark-500 mt-1">
               Real-time monitoring of configuration changes across cloud providers
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 ${theme.bg.card} px-3 py-1.5 rounded-lg border ${theme.border.primary}`}>
-              <Activity className="h-4 w-4 text-cyan-500" />
-              <span className={`text-sm font-medium ${theme.text.secondary}`}>
+            <div className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
+              <Activity className="h-4 w-4 text-cyan-400 animate-pulse" />
+              <span className="text-sm font-medium text-dark-900">
                 {(cloudTrackers || []).reduce((sum: number, t: any) => sum + (t.events_monitored || 0), 0).toLocaleString()} Events
               </span>
             </div>
-            <div className={`flex items-center gap-2 ${theme.bg.card} px-3 py-1.5 rounded-lg border ${theme.border.primary}`}>
-              <Cloud className="h-4 w-4 text-cyan-500" />
-              <span className="text-sm font-medium text-cyan-700">
+            <div className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
+              <Cloud className="h-4 w-4 text-cyan-400" />
+              <span className="text-sm font-medium text-cyan-400">
                 {cloudTrackers.length} {cloudTrackers.length === 1 ? 'Source' : 'Sources'}
               </span>
             </div>
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-              rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-              <PlusCircle className="h-4 w-4 text-green-500" />
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
+              rounded-lg hover-lift text-dark-900 transition-all">
+              <PlusCircle className="h-4 w-4 text-green-400" />
               Add Source
             </button>
           </div>
@@ -609,21 +498,21 @@ export const AdminDashboard: React.FC = () => {
                 <>
                   {/* Tab Navigation */}
                   <div className="mb-4">
-                    <div className={`flex gap-1 border-b ${theme.border.primary}`}>
+                    <div className="flex gap-2 border-b border-white/10">
                       {providers.map((provider) => (
                         <button
                           key={provider}
                           onClick={() => setActiveProvider(provider)}
-                          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors
+                          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-all
                             ${activeProvider === provider
-                              ? `${theme.bg.card} border ${theme.border.primary} ${theme.text.primary} shadow-sm`
-                              : `${theme.text.tertiary} hover:${theme.text.secondary}`}`}
+                              ? 'glass-card border-b-2 border-cyan-400 text-dark-900'
+                              : 'text-dark-500 hover:text-dark-900'}`}
                         >
                           <div className="flex items-center gap-1.5">
                             <Cloud className="h-3.5 w-3.5" />
                             <span>{provider}</span>
                             <span className={`text-xs px-1.5 py-0.5 rounded-full
-                              ${activeProvider === provider ? 'bg-blue-100 text-cyan-400' : `${theme.bg.tertiary} ${theme.text.secondary}`}`}>
+                              ${activeProvider === provider ? 'glass text-cyan-400' : 'glass text-dark-500'}`}>
                               {groupedSources[provider].length}
                             </span>
                           </div>
@@ -633,21 +522,21 @@ export const AdminDashboard: React.FC = () => {
                   </div>
 
                   {/* Active Provider Content */}
-                  <div className={`${theme.bg.card} rounded-lg border ${theme.border.primary}`}>
+                  <div className="glass-card rounded-lg">
                     <div className="p-5">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <Cloud className="h-5 w-5 text-cyan-600" />
-                          <h4 className={`font-semibold ${theme.text.primary}`}>{activeProvider}</h4>
+                          <Cloud className="h-5 w-5 text-cyan-400" />
+                          <h4 className="font-semibold text-dark-900">{activeProvider}</h4>
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className={`flex items-center gap-1 text-sm ${theme.text.secondary}`}>
-                            <Activity className="h-4 w-4 text-green-500" />
+                          <div className="flex items-center gap-1 text-sm text-dark-900">
+                            <Activity className="h-4 w-4 text-green-400 animate-pulse" />
                             <span>
                               {(groupedSources[activeProvider] || []).reduce((sum: number, s: any) => sum + (s.events_monitored || 0), 0)} Events
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-orange-600">
+                          <div className="flex items-center gap-1 text-sm text-orange-400">
                             <AlertTriangle className="h-4 w-4" />
                             <span>
                               {(groupedSources[activeProvider] || []).reduce((sum: number, s: any) => sum + (s.config_changes_detected || 0), 0)} Changes
@@ -658,29 +547,29 @@ export const AdminDashboard: React.FC = () => {
 
                       {/* Health Status Summary */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                          <div className="text-lg font-bold text-green-700">
+                        <div className="glass-card p-3 hover-lift border-l-2 border-green-500">
+                          <div className="text-lg font-bold text-green-400">
                             {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'healthy').length}
                           </div>
-                          <div className={`text-xs ${theme.text.secondary}`}>Healthy</div>
+                          <div className="text-xs text-dark-500">Healthy</div>
                         </div>
-                        <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                          <div className="text-lg font-bold text-yellow-700">
+                        <div className="glass-card p-3 hover-lift border-l-2 border-yellow-500">
+                          <div className="text-lg font-bold text-yellow-400">
                             {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'warning').length}
                           </div>
-                          <div className={`text-xs ${theme.text.secondary}`}>Warning</div>
+                          <div className="text-xs text-dark-500">Warning</div>
                         </div>
-                        <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-                          <div className="text-lg font-bold text-red-700">
+                        <div className="glass-card p-3 hover-lift border-l-2 border-red-500">
+                          <div className="text-lg font-bold text-red-400">
                             {(groupedSources[activeProvider] || []).filter((t: any) => t.health === 'unhealthy').length}
                           </div>
-                          <div className={`text-xs ${theme.text.secondary}`}>Unhealthy</div>
+                          <div className="text-xs text-dark-500">Unhealthy</div>
                         </div>
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <div className="glass-card p-3 hover-lift border-l-2 border-cyan-500">
                           <div className="text-lg font-bold text-cyan-400">
                             {(groupedSources[activeProvider] || []).length}
                           </div>
-                          <div className={`text-xs ${theme.text.secondary}`}>Total</div>
+                          <div className="text-xs text-dark-500">Total</div>
                         </div>
                       </div>
 
@@ -816,44 +705,44 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Drift Summary with improved visuals */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className={`${theme.bg.card} p-4 rounded-lg border-2 border-red-200 hover:shadow-sm transition-shadow`}>
+            <div className="glass-card p-4 hover-lift border-l-2 border-red-500">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <div className="text-lg font-bold text-red-600">{driftData.critical_drifts}</div>
+                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
+                <div className="text-lg font-bold text-red-400">{driftData.critical_drifts}</div>
               </div>
-              <div className={`text-xs ${theme.text.secondary} mt-1`}>Critical Drifts</div>
-              <div className={`text-xs ${theme.text.tertiary} mt-1`}>
+              <div className="text-xs text-dark-500 mt-1">Critical Drifts</div>
+              <div className="text-xs text-dark-600 mt-1">
                 {Math.round((driftData.critical_drifts / driftData.total_drifts) * 100 || 0)}% of total
               </div>
             </div>
-            <div className={`${theme.bg.card} p-4 rounded-lg border-2 border-orange-200 hover:shadow-sm transition-shadow`}>
+            <div className="glass-card p-4 hover-lift border-l-2 border-orange-500">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                <div className="text-lg font-bold text-orange-600">{driftData.high_drifts}</div>
+                <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div className="text-lg font-bold text-orange-400">{driftData.high_drifts}</div>
               </div>
-              <div className={`text-xs ${theme.text.secondary} mt-1`}>High Severity</div>
-              <div className={`text-xs ${theme.text.tertiary} mt-1`}>
+              <div className="text-xs text-dark-500 mt-1">High Severity</div>
+              <div className="text-xs text-dark-600 mt-1">
                 {Math.round((driftData.high_drifts / driftData.total_drifts) * 100 || 0)}% of total
               </div>
             </div>
-            <div className={`${theme.bg.card} p-4 rounded-lg border-2 border-yellow-200 hover:shadow-sm transition-shadow`}>
+            <div className="glass-card p-4 hover-lift border-l-2 border-yellow-500">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                <div className="text-lg font-bold text-yellow-600">{driftData.medium_drifts}</div>
+                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                <div className="text-lg font-bold text-yellow-400">{driftData.medium_drifts}</div>
               </div>
-              <div className={`text-xs ${theme.text.secondary} mt-1`}>Medium Severity</div>
-              <div className={`text-xs ${theme.text.tertiary} mt-1`}>
+              <div className="text-xs text-dark-500 mt-1">Medium Severity</div>
+              <div className="text-xs text-dark-600 mt-1">
                 {Math.round((driftData.medium_drifts / driftData.total_drifts) * 100 || 0)}% of total
               </div>
             </div>
-            <div className={`${theme.bg.card} p-4 rounded-lg border-2 ${theme.border.primary} hover:shadow-sm transition-shadow`}>
+            <div className="glass-card p-4 hover-lift border-l-2 border-gray-500">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <div className={`text-lg font-bold ${theme.text.secondary}`}>
+                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                <div className="text-lg font-bold text-gray-400">
                   {Object.keys(driftData.drift_by_source || {}).length}
                 </div>
               </div>
-              <div className={`text-xs ${theme.text.secondary} mt-1`}>Affected Sources</div>
+              <div className="text-xs text-dark-500 mt-1">Affected Sources</div>
             </div>
           </div>
 
@@ -1011,26 +900,26 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Enhanced Priority Actions Section */}
       {personaInsights ? (
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm p-6 border border-purple-100">
+        <div className="glass-card p-6 border-l-4 border-purple-500 data-stream">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h3 className={`text-xl font-bold ${theme.text.primary} flex items-center gap-2`}>
-                <Shield className="h-6 w-6 text-purple-600" />
+              <h3 className="text-xl font-bold text-dark-900 flex items-center gap-2">
+                <Shield className="h-6 w-6 text-purple-400" />
                 Priority Actions Center
               </h3>
-              <p className={`text-sm ${theme.text.secondary} mt-1`}>
+              <p className="text-sm text-dark-500 mt-1">
                 Strategic items requiring your immediate attention and action
               </p>
             </div>
             <div className="flex gap-2">
-              <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-                rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-                <PlusCircle className="h-4 w-4 text-green-500" />
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-green-500/20
+                rounded-lg hover-lift text-dark-900 transition-all">
+                <PlusCircle className="h-4 w-4 text-green-400" />
                 Add Action
               </button>
-              <button className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.bg.card} border ${theme.border.secondary}
-                rounded-lg hover:${theme.bg.secondary} ${theme.text.secondary} transition-colors`}>
-                <FileText className="h-4 w-4 text-purple-500" />
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium glass-card border border-purple-500/20
+                rounded-lg hover-lift text-dark-900 transition-all">
+                <FileText className="h-4 w-4 text-purple-400" />
                 Export Report
               </button>
             </div>
@@ -1179,28 +1068,28 @@ export const AdminDashboard: React.FC = () => {
           const Icon = stat.icon;
           const colorClasses = {
             blue: {
-              bg: 'bg-blue-50',
-              border: 'border-blue-200',
-              text: 'text-cyan-400',
-              iconBg: 'bg-blue-100'
+              gradient: 'from-blue-500/10 to-cyan-500/10',
+              border: 'border-blue-500/20',
+              text: 'text-blue-400',
+              iconColor: 'text-blue-400'
             },
             green: {
-              bg: 'bg-green-50',
-              border: 'border-green-200',
-              text: 'text-green-600',
-              iconBg: 'bg-green-100'
+              gradient: 'from-green-500/10 to-emerald-500/10',
+              border: 'border-green-500/20',
+              text: 'text-green-400',
+              iconColor: 'text-green-400'
             },
             red: {
-              bg: 'bg-red-50',
-              border: 'border-red-200',
-              text: 'text-red-600',
-              iconBg: 'bg-red-100'
+              gradient: 'from-red-500/10 to-orange-500/10',
+              border: 'border-red-500/20',
+              text: 'text-red-400',
+              iconColor: 'text-red-400'
             },
             gray: {
-              bg: theme.bg.secondary,
-              border: theme.border.primary,
-              text: theme.text.secondary,
-              iconBg: theme.bg.tertiary
+              gradient: 'from-gray-500/10 to-slate-500/10',
+              border: 'border-gray-500/20',
+              text: 'text-gray-400',
+              iconColor: 'text-gray-400'
             }
           };
 
@@ -1209,46 +1098,31 @@ export const AdminDashboard: React.FC = () => {
           return (
             <div
               key={stat.name}
-              className={`rounded-xl shadow-sm hover:shadow-md transition-all animate-slideUp
-                ${colors.bg} border ${colors.border} p-5`}
+              className={`metric-card bg-gradient-to-br ${colors.gradient} ${colors.border} hover-lift group animate-slideUp`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`${colors.iconBg} p-3 rounded-lg`}>
-                    <Icon className={`h-6 w-6 ${colors.text}`} />
-                  </div>
-                  <div>
-                    <p className={`text-sm font-medium ${colors.text} mb-0.5`}>{stat.name}</p>
-                    {stat.trend !== 'neutral' && (
-                      <div className={`flex items-center text-xs font-medium
-                        ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                        {stat.trend === 'up' ? (
-                          <>
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            {stat.change} increase
-                          </>
-                        ) : (
-                          <>
-                            <TrendingDown className="h-3 w-3 mr-1" />
-                            {stat.change} decrease
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-xl glass-strong">
+                  <Icon className={`h-6 w-6 ${colors.iconColor}`} />
                 </div>
-              </div>
-              <div className="mt-1">
-                <h3 className={`text-3xl font-bold ${colors.text} mb-1`}>
-                  {stat.value}
-                </h3>
-                {stat.name === 'Last Updated' && (
-                  <p className={`text-xs ${theme.text.tertiary}`}>
-                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                {stat.trend !== 'neutral' && (
+                  stat.trend === 'up' ? (
+                    <TrendingUp className={`h-5 w-5 ${colors.iconColor} group-hover:scale-110 transition-transform`} />
+                  ) : (
+                    <TrendingDown className={`h-5 w-5 ${colors.iconColor} group-hover:scale-110 transition-transform`} />
+                  )
                 )}
               </div>
+              <h3 className="text-3xl font-bold text-dark-900 mb-1">
+                {stat.value}
+              </h3>
+              <p className="text-dark-500 text-sm">{stat.name}</p>
+              {stat.trend !== 'neutral' && (
+                <div className={`flex items-center text-xs font-medium mt-2
+                  ${stat.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
+                  {stat.change} {stat.trend === 'up' ? 'increase' : 'decrease'}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1257,7 +1131,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Enhanced Charts Grid with improved visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Enhanced Compliance Trend Chart */}
-        <div className={`${theme.bg.card} rounded-xl shadow-sm p-6 border-t-4 ${compliancePercentage >= 90 ? 'border-green-500' :
+        <div className={`glass-card p-6 data-stream border-l-4 ${compliancePercentage >= 90 ? 'border-green-500' :
           compliancePercentage >= 70 ? 'border-yellow-500' : 'border-red-500'}`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Compliance Trend (24h)</h3>

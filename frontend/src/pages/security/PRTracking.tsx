@@ -37,78 +37,14 @@ interface PRStats {
 }
 
 export const PRTracking: React.FC = () => {
-  const [prs, setPrs] = useState<PR[]>([
-    {
-      id: 'pr-1',
-      pr_url: 'https://github.com/company/infrastructure/pull/123',
-      pr_number: 123,
-      violation_id: 'v001',
-      title: 'Fix S3 bucket public access configuration',
-      description: 'Removes public access from prod-data-bucket and enables block public access settings',
-      author: 'devops-team',
-      repository: 'company/infrastructure',
-      status: 'open',
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-      merged_at: null,
-      closed_at: null,
-      files_changed: ['terraform/s3.tf', 'terraform/iam.tf'],
-      commits: 3,
-      additions: 45,
-      deletions: 12,
-      reviewers: ['security-lead', 'platform-engineer'],
-      labels: ['security', 'compliance', 'soc2']
-    },
-    {
-      id: 'pr-2',
-      pr_url: 'https://github.com/company/infrastructure/pull/124',
-      pr_number: 124,
-      violation_id: 'v002',
-      title: 'Enable RDS encryption at rest',
-      description: 'Migrates patient-db to encrypted RDS instance with KMS key',
-      author: 'security-team',
-      repository: 'company/infrastructure',
-      status: 'merged',
-      created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      merged_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      closed_at: null,
-      files_changed: ['terraform/rds.tf', 'terraform/kms.tf', 'scripts/migrate-db.sh'],
-      commits: 8,
-      additions: 156,
-      deletions: 34,
-      reviewers: ['dba-lead', 'security-lead'],
-      labels: ['security', 'compliance', 'hipaa', 'critical']
-    },
-    {
-      id: 'pr-3',
-      pr_url: 'https://github.com/company/payment-service/pull/89',
-      pr_number: 89,
-      violation_id: 'v003',
-      title: 'Implement PAN masking in application logs',
-      description: 'Adds regex-based PAN detection and masking to logging middleware',
-      author: 'dev-team',
-      repository: 'company/payment-service',
-      status: 'open',
-      created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      merged_at: null,
-      closed_at: null,
-      files_changed: ['src/middleware/logging.ts', 'src/utils/masking.ts', 'tests/masking.test.ts'],
-      commits: 5,
-      additions: 234,
-      deletions: 18,
-      reviewers: ['security-team', 'senior-dev'],
-      labels: ['security', 'compliance', 'pci-dss', 'high-priority']
-    }
-  ]);
+  const [prs, setPrs] = useState<PR[]>([]);
   const [stats, setStats] = useState<PRStats>({
-    total: 3,
-    open: 2,
-    merged: 1,
+    total: 0,
+    open: 0,
+    merged: 0,
     closed: 0,
-    violations_with_prs: 3,
-    average_prs_per_violation: 1.0
+    violations_with_prs: 0,
+    average_prs_per_violation: 0
   });
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,11 +62,17 @@ export const PRTracking: React.FC = () => {
       const statusParam = selectedStatus !== 'all' ? `?status=${selectedStatus}` : '';
       const response = await fetch(`http://localhost:8000/prs${statusParam}`);
       const data = await response.json();
-      setPrs(data.prs || prs);
-      setStats(data.stats || stats);
+      setPrs(data.prs || []);
+      setStats(data.stats || {
+        total: 0,
+        open: 0,
+        merged: 0,
+        closed: 0,
+        violations_with_prs: 0,
+        average_prs_per_violation: 0
+      });
     } catch (error) {
       console.error('Error fetching PRs:', error);
-      // Keep mock data
     }
   };
 

@@ -104,15 +104,15 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ onSelect }) => {
             return (
               <div
                 key={role.id}
-                className="glass-card p-8 hover-lift cursor-pointer group relative overflow-hidden animate-slideUp"
+                className="glass-card p-8 hover-lift cursor-pointer group relative overflow-hidden animate-slideUp data-stream"
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => handleRoleSelect(role.id, role.name)}
               >
                 {/* Gradient border effect on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-r ${role.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
                 
-                {/* Top accent line */}
-                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${role.gradient}`}></div>
+                {/* Top accent line with pulse effect */}
+                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${role.gradient} group-hover:h-2 transition-all duration-300`}></div>
                 
                 <div className="relative z-10">
                   <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-6 bg-gradient-to-r ${role.gradient} p-[2px] group-hover:scale-110 transition-transform duration-300`}>

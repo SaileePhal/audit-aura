@@ -37,40 +37,10 @@ export const SecurityIncidents: React.FC = () => {
           }
         });
         setViolationPRs(prsByViolation);
-      } else {
-        // Mock PR data
-        setViolationPRs({
-          '1': [{
-            id: 'pr-1',
-            pr_number: 123,
-            title: 'Fix S3 bucket public access',
-            status: 'open',
-            created_at: new Date().toISOString(),
-            author: 'devops-team'
-          }],
-          '2': [{
-            id: 'pr-2',
-            pr_number: 124,
-            title: 'Enable RDS encryption',
-            status: 'merged',
-            created_at: new Date().toISOString(),
-            author: 'security-team'
-          }]
-        });
       }
     } catch (error) {
       console.error('Failed to fetch PRs:', error);
-      // Mock PR data on error
-      setViolationPRs({
-        '1': [{
-          id: 'pr-1',
-          pr_number: 123,
-          title: 'Fix S3 bucket public access',
-          status: 'open',
-          created_at: new Date().toISOString(),
-          author: 'devops-team'
-        }]
-      });
+      setViolationPRs({});
     }
   };
 

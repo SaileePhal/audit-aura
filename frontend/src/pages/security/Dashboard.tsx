@@ -8,38 +8,7 @@ export const SecurityDashboard: React.FC = () => {
   const { complianceScore, violations, fetchDashboard, dashboardData } = useComplianceStore();
   const [timeRange, setTimeRange] = useState('24h');
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [cloudTrackers, setCloudTrackers] = useState<any[]>([
-    {
-      id: "cloudwatch-us-east-1",
-      name: "AWS CloudWatch",
-      provider: "AWS",
-      status: "active",
-      events_monitored: 15234,
-      config_changes_detected: 342,
-      last_event: new Date().toISOString(),
-      health: "healthy"
-    },
-    {
-      id: "azure-monitor-eastus",
-      name: "Azure Monitor",
-      provider: "Microsoft Azure",
-      status: "active",
-      events_monitored: 12890,
-      config_changes_detected: 289,
-      last_event: new Date().toISOString(),
-      health: "healthy"
-    },
-    {
-      id: "gcp-cloud-logging",
-      name: "GCP Cloud Logging",
-      provider: "Google Cloud",
-      status: "active",
-      events_monitored: 9234,
-      config_changes_detected: 201,
-      last_event: new Date().toISOString(),
-      health: "healthy"
-    }
-  ]);
+  const [cloudTrackers, setCloudTrackers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,13 +24,13 @@ export const SecurityDashboard: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch cloud trackers:', error);
-        // Keep default mock data
+        // Don't use mock data
       }
     };
     
     fetchData();
-    // Refresh every 10 seconds to show changing data
-    const interval = setInterval(fetchData, 10000);
+    // Refresh every 30 seconds (matches backend COMPLIANCE_CHECK_INTERVAL)
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchDashboard]);
 

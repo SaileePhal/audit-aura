@@ -17,10 +17,44 @@ export default defineConfig({
       '/api': {
         target: 'http://backend:8000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/ws': {
         target: 'ws://backend:8000',
         ws: true,
+      },
+      // Proxy backend endpoints directly
+      '/controls': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/upload': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/upload-url': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/ingest': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/pdfs': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/dashboard': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/compliance-score': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+      '/violations': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
       },
     },
   },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Shield, LogOut, Menu, X, Bell, Settings, BarChart3, FileText, Users, AlertTriangle, GitPullRequest, Activity } from 'lucide-react';
+import { Shield, LogOut, Menu, X, Bell, Settings, BarChart3, FileText, Users, AlertTriangle, GitPullRequest, Activity, Cloud } from 'lucide-react';
 import { theme } from '@/config/theme';
 
 interface LayoutProps {
@@ -20,6 +20,7 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
     admin: [
       { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
       { name: 'Controls', href: '/admin/controls', icon: FileText },
+      { name: 'Connections', href: '/admin/connections', icon: Cloud },
       { name: 'Settings', href: '/admin/settings', icon: Settings },
     ],
     devops: [

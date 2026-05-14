@@ -23,11 +23,19 @@ from services.evaluator import evaluate_controls
 from services.evidence import generate_evidence
 from services.notifications import NotificationService
 from services.event_sources import create_event_aggregator
-from services.ai_agents import get_orchestrator
+from services.dynamic_event_sources import get_dynamic_source_manager
 from services.compliance_tracker import get_tracker
 from services.mock_data_service import get_mock_data_service
 from services.pr_tracker import get_pr_tracker
 from services.websocket_manager import ws_manager, start_heartbeat_task
+from services.skill_based_detection_agent import (
+    get_detection_system,
+    initialize_detection_system_from_vector_store
+)
+from services.skills import get_skill_registry, SkillCategory
+
+# Import routers
+from routers.connections import router as connections_router
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -48,6 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(connections_router)
+
 # Setup PDF storage directory
 PDF_STORAGE_DIR = Path("./data/pdfs")
 PDF_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -58,9 +69,9 @@ extractor = None
 vector_store = None
 notification_service = None
 event_aggregator = None
-orchestrator = None
 tracker = None
 monitoring_task = None
+detection_system = None
 
 
 # Request/Response Models
@@ -90,7 +101,7 @@ class HealthResponse(BaseModel):
 async def startup_event():
     """Initialize services on startup"""
     global config, extractor, vector_store, notification_service
-    global event_aggregator, orchestrator, tracker, monitoring_task
+    global event_aggregator, orchestrator, tracker, monitoring_task, detection_system
     
     try:
         # Load configuration
@@ -130,24 +141,24 @@ async def startup_event():
         )
         logger.info("Notification service initialized")
         
-        # Initialize event aggregator with IBM Cloud configuration
-        event_aggregator = create_event_aggregator(
-            mock_mode=config.mock_mode,
-            ibm_cloud_api_key=config.ibm_cloud_api_key if config.ibm_cloud_enabled else None,
-            ibm_cloud_region=config.ibm_cloud_region,
-            ibm_activity_tracker_instance_id=config.ibm_activity_tracker_instance_id,
-            ibm_monitoring_instance_id=config.ibm_monitoring_instance_id,
-            ibm_logs_instance_id=config.ibm_logs_instance_id
-        )
-        logger.info(f"Event aggregator initialized (Mock Mode: {config.mock_mode}, IBM Cloud: {config.ibm_cloud_enabled})")
+        # Initialize dynamic event source manager
+        dynamic_source_manager = get_dynamic_source_manager()
         
-        # Initialize AI orchestrator
-        orchestrator = get_orchestrator()
-        logger.info("AI orchestrator initialized")
+        # Create event aggregator from stored connections or use mock mode
+        event_aggregator = dynamic_source_manager.create_aggregator(include_mock=config.mock_mode)
+        logger.info(f"Event aggregator initialized with dynamic sources (Mock Mode: {config.mock_mode})")
+        
+        # Log source status
+        source_status = dynamic_source_manager.get_source_status()
+        logger.info(f"Active event sources: {source_status['total_sources']}")
         
         # Initialize compliance tracker
         tracker = get_tracker()
         logger.info("Compliance tracker initialized")
+        
+        # Initialize skill-based detection system
+        detection_system = get_detection_system()
+        logger.info("Skill-based detection system created")
         
         # Start monitoring task
         monitoring_task = asyncio.create_task(continuous_monitoring())
@@ -188,7 +199,6 @@ async def health_check():
             "vector_store": vector_store is not None,
             "notifications": notification_service is not None,
             "event_aggregator": event_aggregator is not None,
-            "orchestrator": orchestrator is not None,
             "tracker": tracker is not None
         }
     }
@@ -228,6 +238,11 @@ async def upload_pdf(file: UploadFile = File(...)):
         
         # Register controls with tracker
         tracker.register_controls(controls)
+        
+        # Initialize/reload detection system with new controls
+        if detection_system:
+            await detection_system.reload_controls(controls)
+            logger.info("Detection system reloaded with new controls")
         
         # Get unique standards
         standards = list(set(c.get('standard', 'Unknown') for c in controls))
@@ -273,6 +288,11 @@ async def upload_pdf_url(url: str):
         
         # Register controls with tracker
         tracker.register_controls(controls)
+        
+        # Initialize/reload detection system with new controls
+        if detection_system:
+            await detection_system.reload_controls(controls)
+            logger.info("Detection system reloaded with new controls")
         
         # Get unique standards
         standards = list(set(c.get('standard', 'Unknown') for c in controls))
@@ -406,6 +426,11 @@ async def ingest_single_pdf(filename: str):
         # Re-register with tracker
         tracker.register_controls(all_controls)
         
+        # Initialize/reload detection system
+        if detection_system:
+            await detection_system.reload_controls(all_controls)
+            logger.info("Detection system reloaded after single PDF ingestion")
+        
         # Get unique standards
         standards = list(set(c.get('standard', 'Unknown') for c in controls))
         
@@ -514,23 +539,49 @@ async def get_compliance_score(standard: Optional[str] = None):
 
 @app.get("/dashboard")
 async def get_dashboard():
-    """Get comprehensive dashboard data with mock data integration"""
+    """Get comprehensive dashboard data - respects MOCK_MODE setting"""
     try:
-        # Get mock data service for rich data
-        mock_service = get_mock_data_service()
-        
-        # Build comprehensive dashboard response
-        dashboard_data = {
-            "compliance_score": mock_service.get_compliance_scores(live=True),
-            "violations": mock_service.get_violations(),
-            "standards": mock_service.get_standards(),
-            "cloud_event_trackers": mock_service.get_cloud_event_trackers(),
-            "configuration_drift": mock_service._data.get("configuration_drift"),
-            "persona_insights": mock_service._data.get("persona_insights"),
-            "recent_events": mock_service.get_recent_events(limit=10),
-            "security_metrics": mock_service.get_security_metrics(),
-            "ibm_cloud_at_events": mock_service._data.get("ibm_cloud_at_events", [])
-        }
+        # Check if mock mode is enabled
+        if config.mock_mode:
+            # Use mock data service for rich demo data
+            mock_service = get_mock_data_service()
+            
+            dashboard_data = {
+                "compliance_score": mock_service.get_compliance_scores(live=True),
+                "violations": mock_service.get_violations(),
+                "standards": mock_service.get_standards(),
+                "cloud_event_trackers": mock_service.get_cloud_event_trackers(),
+                "configuration_drift": mock_service._data.get("configuration_drift"),
+                "persona_insights": mock_service._data.get("persona_insights"),
+                "recent_events": mock_service.get_recent_events(limit=10),
+                "security_metrics": mock_service.get_security_metrics(),
+                "ibm_cloud_at_events": mock_service._data.get("ibm_cloud_at_events", [])
+            }
+        else:
+            # Use real data from tracker and event sources
+            score_data = tracker.get_compliance_score()
+            violations_list = tracker.get_all_violations()
+            
+            # Get event source status
+            dynamic_source_manager = get_dynamic_source_manager()
+            source_status = dynamic_source_manager.get_source_status()
+            
+            dashboard_data = {
+                "compliance_score": score_data,
+                "violations": violations_list,
+                "standards": score_data.get("standards", {}),
+                "cloud_event_trackers": {
+                    "total_sources": source_status["total_sources"],
+                    "active_sources": source_status["active_sources"],
+                    "sources": source_status["sources"]
+                },
+                "recent_events": [],  # Would come from event aggregator
+                "security_metrics": {
+                    "total_violations": len(violations_list),
+                    "critical_violations": len([v for v in violations_list if v.get("severity") == "critical"]),
+                    "high_violations": len([v for v in violations_list if v.get("severity") == "high"])
+                }
+            }
         
         return dashboard_data
     except Exception as e:
@@ -664,86 +715,97 @@ async def get_dashboard_by_role(role: str):
 # WebSocket endpoint moved to line 910 with enhanced functionality
 
 async def continuous_monitoring():
-    """Continuous monitoring loop with real-time score updates"""
-    logger.info("Starting continuous monitoring loop")
+    """Continuous monitoring loop with skill-based detection"""
+    logger.info("Starting continuous monitoring loop with skill-based detection")
+    
+    # Initialize detection system from vector store if not already initialized
+    if detection_system and not detection_system.initialized:
+        try:
+            controls = vector_store.get_all_controls() if vector_store else []
+            if controls:
+                await detection_system.initialize(controls)
+                logger.info(f"Detection system initialized with {len(controls)} controls")
+        except Exception as e:
+            logger.error(f"Failed to initialize detection system: {e}")
     
     try:
         async for event in event_aggregator.start():
             try:
-                # Get all controls
-                controls = vector_store.get_all_controls()
-                
-                if not controls:
-                    continue
-                
-                # Evaluate event against controls
-                violations = evaluate_controls(controls, event)
-                
-                # Process each violation
-                for violation in violations:
-                    # Process through AI orchestrator
-                    agent_results = orchestrator.process_violation(violation, event)
+                # Process event through skill-based detection system
+                if detection_system and detection_system.initialized:
+                    results = await detection_system.process_event(event)
                     
-                    # Generate evidence
-                    evidence = generate_evidence(event, violation)
+                    # Log processing results
+                    if results.get('violations'):
+                        logger.info(
+                            f"Skill-based detection found {len(results['violations'])} violations "
+                            f"for event {event.get('event_name')}"
+                        )
                     
-                    # Record violation
-                    tracker.record_violation(violation, event)
+                    # Broadcast event processing status
+                    if not results.get('violations'):
+                        await ws_manager.broadcast({
+                            "type": "event_processed",
+                            "event": {
+                                "source": event.get('source'),
+                                "event_name": event.get('event_name'),
+                                "resource_name": event.get('resource_name'),
+                                "timestamp": event.get('event_time')
+                            },
+                            "status": "compliant"
+                        })
+                else:
+                    # Fallback to legacy rule-based detection
+                    logger.warning("Detection system not initialized, using legacy detection")
+                    controls = vector_store.get_all_controls() if vector_store else []
                     
-                    # Get updated compliance score
-                    compliance_score = tracker.get_compliance_score()
+                    if not controls:
+                        continue
                     
-                    # Broadcast real-time updates via WebSocket
-                    await ws_manager.broadcast({
-                        "type": "violation_detected",
-                        "violation": {
-                            "control_id": violation.get('control_id'),
-                            "standard": violation.get('standard'),
-                            "severity": violation.get('severity'),
-                            "description": violation.get('description'),
-                            "timestamp": datetime.utcnow().isoformat()
-                        },
-                        "event": {
-                            "source": event.get('source'),
-                            "event_name": event.get('event_name'),
-                            "resource_name": event.get('resource_name'),
-                            "resource_type": event.get('resource_type'),
-                            "timestamp": event.get('event_time')
-                        },
-                        "compliance_score": compliance_score
-                    })
+                    # Evaluate event against controls
+                    violations = evaluate_controls(controls, event)
                     
-                    # Send notifications
-                    await notification_service.send_violation_alert(
-                        violation=violation,
-                        event=event,
-                        evidence=evidence,
-                        channels=["websocket", "email", "slack"]
-                    )
-                    
-                    logger.info(f"Processed violation: {violation.get('control_id')} from {event.get('source')}")
-                
-                # Broadcast event even if no violations (for activity tracking)
-                if not violations:
-                    await ws_manager.broadcast({
-                        "type": "event_processed",
-                        "event": {
-                            "source": event.get('source'),
-                            "event_name": event.get('event_name'),
-                            "resource_name": event.get('resource_name'),
-                            "timestamp": event.get('event_time')
-                        },
-                        "status": "compliant"
-                    })
+                    # Process each violation
+                    for violation in violations:
+                        # Generate evidence
+                        evidence = generate_evidence(event, violation)
+                        
+                        # Record violation
+                        tracker.record_violation(violation, event)
+                        
+                        # Get updated compliance score
+                        compliance_score = tracker.get_compliance_score()
+                        
+                        # Broadcast real-time updates via WebSocket
+                        await ws_manager.broadcast({
+                            "type": "violation_detected",
+                            "violation": {
+                                "control_id": violation.get('control_id'),
+                                "standard": violation.get('standard'),
+                                "severity": violation.get('severity'),
+                                "description": violation.get('description'),
+                                "timestamp": datetime.utcnow().isoformat()
+                            },
+                            "event": {
+                                "source": event.get('source'),
+                                "event_name": event.get('event_name'),
+                                "resource_name": event.get('resource_name'),
+                                "resource_type": event.get('resource_type'),
+                                "timestamp": event.get('event_time')
+                            },
+                            "compliance_score": compliance_score
+                        })
+                        
+                        logger.info(f"Processed violation: {violation.get('control_id')} from {event.get('source')}")
                 
             except Exception as e:
-                logger.error(f"Error processing event: {e}")
+                logger.error(f"Error processing event: {e}", exc_info=True)
                 continue
     
     except asyncio.CancelledError:
         logger.info("Monitoring loop cancelled")
     except Exception as e:
-        logger.error(f"Monitoring loop error: {e}")
+        logger.error(f"Monitoring loop error: {e}", exc_info=True)
 
 
 # ============================================================================
@@ -826,6 +888,170 @@ async def get_prs_for_violation(violation_id: str):
             "prs": prs,
             "total": len(prs)
         }
+    except Exception as e:
+        logger.error(f"Error getting PRs for violation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# SKILL-BASED DETECTION ENDPOINTS
+# ============================================================================
+
+@app.get("/skills")
+async def get_all_skills(
+    category: Optional[str] = None,
+    provider: Optional[str] = None
+):
+    """
+    Get all registered skills
+    
+    Args:
+        category: Filter by category (detection, analysis, remediation)
+        provider: Filter by provider (ibm_cloud, aws, azure, all)
+        
+    Returns:
+        List of skills with metadata
+    """
+    try:
+        if not detection_system or not detection_system.initialized:
+            return {
+                "success": False,
+                "message": "Detection system not initialized",
+                "skills": []
+            }
+        
+        from services.agent_skills import SkillCategory
+        
+        registry = detection_system.skill_registry
+        
+        if category:
+            try:
+                cat_enum = SkillCategory(category.lower())
+                skills = registry.list_by_category(cat_enum)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
+        elif provider:
+            skills = registry.list_by_provider(provider)
+        else:
+            skills = registry.list_all()
+        
+        return {
+            "success": True,
+            "count": len(skills),
+            "skills": [skill.to_dict() for skill in skills],
+            "stats": registry.get_stats()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting skills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/skills/stats")
+async def get_skill_stats():
+    """
+    Get skill execution statistics
+    
+    Returns:
+        Statistics about skill execution and detection system
+    """
+    try:
+        if not detection_system:
+            return {
+                "success": False,
+                "message": "Detection system not initialized"
+            }
+        
+        stats = detection_system.get_stats()
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting skill stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/detection-system/status")
+async def get_detection_system_status():
+    """
+    Get detection system status
+    
+    Returns:
+        Status of the skill-based detection system
+    """
+    try:
+        if not detection_system:
+            return {
+                "initialized": False,
+                "message": "Detection system not created"
+            }
+        
+        stats = detection_system.get_stats()
+        
+        return {
+            "initialized": detection_system.initialized,
+            "events_processed": stats.get('events_processed', 0),
+            "violations_detected": stats.get('violations_detected', 0),
+            "violation_rate": stats.get('violation_rate', 0),
+            "skill_registry": stats.get('skill_registry', {}),
+            "agents": {
+                "detection": stats.get('detection_agent', {}),
+                "analysis": stats.get('analysis_agent', {}),
+                "remediation": stats.get('remediation_agent', {})
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting detection system status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/detection-system/reload")
+async def reload_detection_system():
+    """
+    Reload detection system with current controls
+    
+    Returns:
+        Reload status
+    """
+    try:
+        if not detection_system:
+            raise HTTPException(status_code=500, detail="Detection system not created")
+        
+        if not vector_store:
+            raise HTTPException(status_code=500, detail="Vector store not initialized")
+        
+        # Get all controls from vector store
+        controls = vector_store.get_all_controls()
+        
+        if not controls:
+            return {
+                "success": False,
+                "message": "No controls found in vector store"
+            }
+        
+        # Reload detection system
+        await detection_system.reload_controls(controls)
+        
+        stats = detection_system.get_stats()
+        
+        return {
+            "success": True,
+            "message": f"Detection system reloaded with {len(controls)} controls",
+            "controls_count": len(controls),
+            "stats": stats
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reloading detection system: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     except Exception as e:
         logger.error(f"Error getting PRs for violation: {e}")
         raise HTTPException(status_code=500, detail=str(e))

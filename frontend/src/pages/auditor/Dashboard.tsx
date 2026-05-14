@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileCheck, TrendingUp, Shield, Download, Cloud, Activity, GitPullRequest, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { FileCheck, TrendingUp, Shield, Download, Cloud, Activity, GitPullRequest, CheckCircle, Clock, AlertTriangle, Target } from 'lucide-react';
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { theme } from '@/config/theme';
@@ -123,8 +123,8 @@ export const AuditorDashboard: React.FC = () => {
     };
     
     fetchData();
-    // Refresh every 10 seconds to show changing data
-    const interval = setInterval(fetchData, 10000);
+    // Refresh every 30 seconds (matches backend COMPLIANCE_CHECK_INTERVAL)
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchDashboard, violations]);
 
@@ -186,90 +186,113 @@ export const AuditorDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header with Live Indicator */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className={`text-3xl font-bold ${theme.text.primary}`}>Auditor/Assessor Dashboard</h1>
-          <p className={`${theme.text.secondary} mt-1`}>Verification & reporting: Review compliance status and generate audit reports</p>
+          <h1 className="text-3xl font-bold text-dark-900 flex items-center gap-3">
+            <FileCheck className="h-8 w-8 text-cyan-400" />
+            Auditor/Assessor Dashboard
+          </h1>
+          <p className="text-dark-500 mt-1">Verification & reporting: Review compliance status and generate audit reports</p>
         </div>
-        <button 
-          onClick={handleExportReport}
-          disabled={generatingReport}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          <Download className="h-5 w-5" />
-          {generatingReport ? 'Generating...' : 'Export Report'}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 glass-card px-4 py-2">
+            <div className="relative w-2 h-2">
+              <div className="absolute inset-0 rounded-full bg-green-400 animate-ping"></div>
+              <div className="relative rounded-full w-2 h-2 bg-green-400"></div>
+            </div>
+            <span className="text-sm font-medium text-dark-900">Live Monitoring</span>
+          </div>
+          <button
+            onClick={handleExportReport}
+            disabled={generatingReport}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all hover:scale-105"
+          >
+            <Download className="h-5 w-5" />
+            {generatingReport ? 'Generating...' : 'Export Report'}
+          </button>
+        </div>
       </div>
 
       {/* Compliance Standards Badges */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm p-4 border border-purple-100">
-        <h3 className={`text-sm font-semibold ${theme.text.primary} mb-3`}>Audit Standards Under Review:</h3>
+      <div className="glass-card p-6 border-l-4 border-purple-500">
+        <h3 className="text-sm font-semibold text-dark-900 mb-3 flex items-center gap-2">
+          <Target className="h-4 w-4 text-purple-400" />
+          Audit Standards Under Review:
+        </h3>
         <div className="flex flex-wrap gap-2">
           {standardsData.map((standard) => (
             <div
               key={standard.name}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+              className={`glass-card px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
                 standard.score >= 90
-                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  ? 'border-green-500/50 text-green-400'
                   : standard.score >= 70
-                  ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                  : 'bg-red-100 text-red-700 border border-red-200'
+                  ? 'border-yellow-500/50 text-yellow-400'
+                  : 'border-red-500/50 text-red-400'
               }`}
             >
               <span>{standard.name}</span>
-              <span className="text-xs opacity-75">{standard.score}%</span>
+              <span className="ml-2 text-xs opacity-75">{standard.score}%</span>
             </div>
           ))}
           {standardsData.length === 0 && (
-            <span className={`text-sm ${theme.text.tertiary}`}>No standards configured</span>
+            <span className="text-sm text-dark-500">No standards configured</span>
           )}
         </div>
       </div>
 
       {/* Cloud Event Trackers */}
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-purple-100">
+      <div className="glass-card p-6 data-stream">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Cloud Event Trackers</h3>
-            <p className={`text-sm ${theme.text.secondary} mt-1`}>Audit trail sources for compliance verification</p>
+            <h3 className="text-lg font-semibold text-dark-900 flex items-center gap-2">
+              <Cloud className="h-6 w-6 text-purple-400" />
+              Cloud Event Trackers
+            </h3>
+            <p className="text-sm text-dark-500 mt-1">Audit trail sources for compliance verification</p>
           </div>
-          <Cloud className="h-8 w-8 text-purple-600" />
+          <div className="flex items-center gap-2 glass rounded-lg px-3 py-2">
+            <Activity className="h-5 w-5 text-purple-400 animate-pulse" />
+            <span className="text-sm font-medium text-dark-900">{cloudTrackers.length} Active</span>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {cloudTrackers.map((tracker) => (
             <div
               key={tracker.id}
-              className={`${theme.bg.card} rounded-lg p-4 border border-purple-100 hover:shadow-md transition-shadow`}
+              className="glass-card p-4 hover-lift"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className={`font-semibold ${theme.text.primary}`}>{tracker.name}</h4>
-                  <p className={`text-xs ${theme.text.tertiary}`}>{tracker.provider}</p>
+                  <h4 className="font-semibold text-dark-900">{tracker.name}</h4>
+                  <p className="text-xs text-dark-500">{tracker.provider}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Activity className={`h-4 w-4 ${tracker.health === 'healthy' ? 'text-green-500' : 'text-red-500'}`} />
-                  <span className={`text-xs font-medium ${tracker.status === 'active' ? 'text-green-600' : theme.text.tertiary}`}>
+                  <Activity className={`h-4 w-4 ${tracker.health === 'healthy' ? 'text-green-400 animate-pulse' : 'text-red-400'}`} />
+                  <span className={`text-xs font-medium ${tracker.status === 'active' ? 'text-green-400' : 'text-dark-500'}`}>
                     {tracker.status}
                   </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className={`${theme.text.secondary}`}>Events Monitored:</span>
-                  <span className={`font-medium ${theme.text.primary}`}>{tracker.events_monitored.toLocaleString()}</span>
+                  <span className="text-dark-500">Events Monitored:</span>
+                  <span className="font-medium text-dark-900">{tracker.events_monitored.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className={`${theme.text.secondary}`}>Region:</span>
-                  <span className={`font-medium ${theme.text.primary}`}>{tracker.region || 'N/A'}</span>
+                  <span className="text-dark-500">Region:</span>
+                  <span className="font-medium text-dark-900">{tracker.region || 'N/A'}</span>
                 </div>
-                <div className={`text-xs ${theme.text.tertiary} mt-2`}>
+                <div className="text-xs text-dark-600 mt-2">
                   Last event: {new Date(tracker.last_event).toLocaleTimeString()}
                 </div>
               </div>
             </div>
           ))}
           {cloudTrackers.length === 0 && (
-            <div className={`col-span-full text-center py-4 ${theme.text.tertiary}`}>
+            <div className="col-span-full text-center py-8 text-dark-500">
+              <Cloud className="h-12 w-12 mx-auto mb-2 text-dark-400" />
               <p>No cloud event trackers configured</p>
             </div>
           )}
@@ -281,50 +304,75 @@ export const AuditorDashboard: React.FC = () => {
         {auditMetrics.map((metric, index) => {
           const Icon = metric.icon;
           const colorClasses = {
-            blue: 'bg-blue-100 text-cyan-400',
-            green: 'bg-green-100 text-green-600',
-            red: 'bg-red-100 text-red-600'
+            blue: {
+              gradient: 'from-blue-500/10 to-cyan-500/10',
+              border: 'border-blue-500/20',
+              iconColor: 'text-blue-400'
+            },
+            green: {
+              gradient: 'from-green-500/10 to-emerald-500/10',
+              border: 'border-green-500/20',
+              iconColor: 'text-green-400'
+            },
+            red: {
+              gradient: 'from-red-500/10 to-orange-500/10',
+              border: 'border-red-500/20',
+              iconColor: 'text-red-400'
+            }
           };
 
+          const colors = colorClasses[metric.color as keyof typeof colorClasses];
+
           return (
-            <div key={metric.name} className={`${theme.bg.card} rounded-xl shadow-sm p-6`}>
+            <div key={metric.name} className={`metric-card bg-gradient-to-br ${colors.gradient} ${colors.border} hover-lift group`}>
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${colorClasses[metric.color as keyof typeof colorClasses]}`}>
-                  <Icon className="h-6 w-6" />
+                <div className="p-3 rounded-xl glass-strong">
+                  <Icon className={`h-6 w-6 ${colors.iconColor}`} />
                 </div>
+                <TrendingUp className={`h-5 w-5 ${colors.iconColor} group-hover:scale-110 transition-transform`} />
               </div>
-              <h3 className={`text-2xl font-bold ${theme.text.primary} mb-1`}>{metric.value}</h3>
-              <p className={`text-sm ${theme.text.secondary}`}>{metric.name}</p>
+              <h3 className="text-3xl font-bold text-dark-900 mb-1">{metric.value}</h3>
+              <p className="text-dark-500 text-sm">{metric.name}</p>
             </div>
           );
         })}
       </div>
 
       {/* Compliance by Standard */}
-      <div className={`${theme.bg.card} rounded-xl shadow-sm p-6`}>
-        <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>Compliance Score by Standard</h3>
+      <div className="glass-card p-6 data-stream">
+        <h3 className="text-lg font-semibold text-dark-900 mb-4">Compliance Score by Standard</h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={standardsData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="name" stroke="#9ca3af" />
-            <YAxis stroke="#9ca3af" domain={[0, 100]} />
-            <Tooltip />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <XAxis dataKey="name" stroke="#a1a1aa" />
+            <YAxis stroke="#a1a1aa" domain={[0, 100]} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(24, 24, 27, 0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#fafafa'
+              }}
+            />
             <Legend />
-            <Bar dataKey="score" fill="#3b82f6" name="Compliance Score (%)" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="score" fill="#06b6d4" name="Compliance Score (%)" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Audit Trail Section */}
-      <div className={`${theme.bg.card} rounded-xl shadow-sm p-6`}>
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className={`text-lg font-semibold ${theme.text.primary}`}>Complete Audit Trail</h3>
-            <p className={`text-sm ${theme.text.secondary} mt-1`}>End-to-end lifecycle tracking: Detection → Alert → PR → Resolution</p>
+            <h3 className="text-lg font-semibold text-dark-900 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-purple-400" />
+              Complete Audit Trail
+            </h3>
+            <p className="text-sm text-dark-500 mt-1">End-to-end lifecycle tracking: Detection → Alert → PR → Resolution</p>
           </div>
           <button
             onClick={() => setShowAuditTrail(!showAuditTrail)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all hover:scale-105"
           >
             {showAuditTrail ? 'Hide Trail' : 'Show Trail'}
           </button>
@@ -333,9 +381,10 @@ export const AuditorDashboard: React.FC = () => {
         {showAuditTrail && (
           <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
             {auditTrail.length === 0 ? (
-              <div className={`text-center py-8 ${theme.text.tertiary}`}>
-                <Clock className={`h-12 w-12 mx-auto mb-2 ${theme.text.muted}`} />
-                <p>No audit trail events yet</p>
+              <div className="text-center py-12 text-dark-500">
+                <Clock className="h-16 w-16 mx-auto mb-3 text-dark-400" />
+                <p className="text-lg font-medium text-dark-900">No audit trail events yet</p>
+                <p className="text-sm">Events will appear here as violations are detected and resolved</p>
               </div>
             ) : (
               auditTrail.map((event) => {
@@ -352,27 +401,27 @@ export const AuditorDashboard: React.FC = () => {
 
                 const getEventColor = () => {
                   switch (event.event_type) {
-                    case 'detected': return 'border-red-200 bg-red-50';
-                    case 'alerted': return 'border-orange-200 bg-orange-50';
-                    case 'pr_created': return 'border-blue-200 bg-blue-50';
-                    case 'pr_merged': return 'border-purple-200 bg-purple-50';
-                    case 'resolved': return 'border-green-200 bg-green-50';
-                    default: return `${theme.border.primary} ${theme.bg.secondary}`;
+                    case 'detected': return 'border-red-500';
+                    case 'alerted': return 'border-orange-500';
+                    case 'pr_created': return 'border-blue-500';
+                    case 'pr_merged': return 'border-purple-500';
+                    case 'resolved': return 'border-green-500';
+                    default: return 'border-gray-500';
                   }
                 };
 
                 return (
                   <div
                     key={event.id}
-                    className={`flex items-start gap-4 p-4 rounded-lg border-l-4 ${getEventColor()}`}
+                    className={`flex items-start gap-4 p-4 glass-card rounded-lg border-l-4 hover-lift ${getEventColor()}`}
                   >
                     <div className="flex-shrink-0 mt-1">
                       {getEventIcon()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        <span className={`font-semibold ${theme.text.primary}`}>{event.control_id}</span>
-                        <span className={`text-xs ${theme.text.tertiary}`}>
+                        <span className="font-semibold text-dark-900">{event.control_id}</span>
+                        <span className="text-xs text-dark-500">
                           {new Date(event.timestamp).toLocaleString()}
                         </span>
                         {event.pr_number && (
@@ -380,13 +429,13 @@ export const AuditorDashboard: React.FC = () => {
                             href={event.pr_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-cyan-400 hover:text-blue-800 font-medium"
+                            className="text-xs text-cyan-400 hover:text-cyan-600 font-medium transition-colors"
                           >
                             PR #{event.pr_number}
                           </a>
                         )}
                       </div>
-                      <p className={`text-sm ${theme.text.secondary}`}>{event.details}</p>
+                      <p className="text-sm text-dark-600">{event.details}</p>
                     </div>
                   </div>
                 );
@@ -397,41 +446,44 @@ export const AuditorDashboard: React.FC = () => {
       </div>
 
       {/* Standards Summary */}
-      <div className={`${theme.bg.card} rounded-xl shadow-sm p-6`}>
-        <h3 className={`text-lg font-semibold ${theme.text.primary} mb-4`}>Standards Summary</h3>
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold text-dark-900 mb-4 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-cyan-400" />
+          Standards Summary
+        </h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className={`${theme.bg.secondary}`}>
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="glass">
               <tr>
-                <th className={`px-6 py-3 text-left text-xs font-medium ${theme.text.tertiary} uppercase`}>Standard</th>
-                <th className={`px-6 py-3 text-left text-xs font-medium ${theme.text.tertiary} uppercase`}>Compliance Score</th>
-                <th className={`px-6 py-3 text-left text-xs font-medium ${theme.text.tertiary} uppercase`}>Total Controls</th>
-                <th className={`px-6 py-3 text-left text-xs font-medium ${theme.text.tertiary} uppercase`}>Violations</th>
-                <th className={`px-6 py-3 text-left text-xs font-medium ${theme.text.tertiary} uppercase`}>Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-dark-500 uppercase">Standard</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-dark-500 uppercase">Compliance Score</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-dark-500 uppercase">Total Controls</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-dark-500 uppercase">Violations</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-dark-500 uppercase">Status</th>
               </tr>
             </thead>
-            <tbody className={`${theme.bg.card} divide-y divide-gray-200`}>
+            <tbody className="divide-y divide-white/10">
               {standardsData.map((standard) => (
-                <tr key={standard.name} className={`hover:${theme.bg.secondary}`}>
-                  <td className={`px-6 py-4 whitespace-nowrap font-medium ${theme.text.primary}`}>{standard.name}</td>
+                <tr key={standard.name} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-dark-900">{standard.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-full bg-gray-200 rounded-full h-2 mr-2" style={{ width: '100px' }}>
-                        <div 
-                          className="bg-cyan-600 h-2 rounded-full" 
+                        <div
+                          className="bg-cyan-400 h-2 rounded-full transition-all"
                           style={{ width: `${standard.score}%` }}
                         />
                       </div>
-                      <span className={`text-sm ${theme.text.secondary}`}>{standard.score}%</span>
+                      <span className="text-sm text-dark-900">{standard.score}%</span>
                     </div>
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${theme.text.secondary}`}>{standard.controls}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${theme.text.secondary}`}>{standard.violations}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-600">{standard.controls}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-600">{standard.violations}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      standard.score >= 90 ? 'bg-green-100 text-green-700' :
-                      standard.score >= 70 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
+                    <span className={`glass-card px-2 py-1 rounded-full text-xs font-medium ${
+                      standard.score >= 90 ? 'text-green-400 border-green-500/30' :
+                      standard.score >= 70 ? 'text-yellow-400 border-yellow-500/30' :
+                      'text-red-400 border-red-500/30'
                     }`}>
                       {standard.score >= 90 ? 'Compliant' : standard.score >= 70 ? 'At Risk' : 'Non-Compliant'}
                     </span>

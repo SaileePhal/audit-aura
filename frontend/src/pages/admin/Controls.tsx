@@ -3,6 +3,8 @@ import { FileText, Search, Filter, Plus, Edit, Trash2, Upload, RefreshCw, AlertC
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { theme } from '@/config/theme';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 interface Control {
   id: string;
   control_id?: string;
@@ -36,138 +38,24 @@ export const AdminControls: React.FC = () => {
   const fetchControls = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/controls');
+      const response = await fetch(`${API_BASE_URL}/controls`);
       if (response.ok) {
         const data = await response.json();
         setControls(data.controls || []);
+        // Clear any previous error messages on success
+        setMessage(null);
       } else {
-        // Use mock data if API fails
-        setControls([
-          {
-            id: '1',
-            control_id: 'CC6.1',
-            standard: 'SOC2',
-            title: 'Logical and Physical Access Controls',
-            description: 'The entity implements logical access security software, infrastructure, and architectures over protected information assets to protect them from security events to meet the entity\'s objectives.',
-            category: 'Access Control',
-            severity: 'high'
-          },
-          {
-            id: '2',
-            control_id: 'CC6.6',
-            standard: 'SOC2',
-            title: 'Network Security',
-            description: 'The entity implements logical access security measures to protect against threats from sources outside its system boundaries.',
-            category: 'Network Security',
-            severity: 'high'
-          },
-          {
-            id: '3',
-            control_id: 'CC7.2',
-            standard: 'SOC2',
-            title: 'System Monitoring',
-            description: 'The entity monitors system components and the operation of those components for anomalies that are indicative of malicious acts, natural disasters, and errors affecting the entity\'s ability to meet its objectives.',
-            category: 'Monitoring',
-            severity: 'medium'
-          },
-          {
-            id: '4',
-            control_id: 'HP-164.312(a)(2)(iv)',
-            standard: 'HIPAA',
-            title: 'Encryption and Decryption',
-            description: 'Implement a mechanism to encrypt and decrypt electronic protected health information.',
-            category: 'Data Protection',
-            severity: 'critical'
-          },
-          {
-            id: '5',
-            control_id: 'HP-164.308(a)(5)(ii)(C)',
-            standard: 'HIPAA',
-            title: 'Log-in Monitoring',
-            description: 'Procedures for monitoring log-in attempts and reporting discrepancies.',
-            category: 'Access Control',
-            severity: 'medium'
-          },
-          {
-            id: '6',
-            control_id: 'PCI-3.4',
-            standard: 'PCI-DSS',
-            title: 'Render PAN Unreadable',
-            description: 'Render PAN unreadable anywhere it is stored (including on portable digital media, backup media, and in logs).',
-            category: 'Data Protection',
-            severity: 'critical'
-          },
-          {
-            id: '7',
-            control_id: 'PCI-8.2',
-            standard: 'PCI-DSS',
-            title: 'User Authentication',
-            description: 'In addition to assigning a unique ID, ensure proper user-authentication management for non-consumer users and administrators.',
-            category: 'Access Control',
-            severity: 'high'
-          },
-          {
-            id: '8',
-            control_id: 'A.9.2.3',
-            standard: 'ISO27001',
-            title: 'Management of Privileged Access Rights',
-            description: 'The allocation and use of privileged access rights shall be restricted and controlled.',
-            category: 'Access Control',
-            severity: 'high'
-          },
-          {
-            id: '9',
-            control_id: 'A.12.4.1',
-            standard: 'ISO27001',
-            title: 'Event Logging',
-            description: 'Event logs recording user activities, exceptions, faults and information security events shall be produced, kept and regularly reviewed.',
-            category: 'Monitoring',
-            severity: 'medium'
-          },
-          {
-            id: '10',
-            control_id: 'GDPR-32',
-            standard: 'GDPR',
-            title: 'Security of Processing',
-            description: 'Implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk.',
-            category: 'Data Protection',
-            severity: 'high'
-          }
-        ]);
+        // Only show error for client errors (4xx), not server errors (5xx) during startup
+        setControls([]);
+        if (response.status >= 400 && response.status < 500) {
+          setMessage({ type: 'error', text: 'Failed to fetch controls from server' });
+        }
+        // Silently ignore 5xx errors (backend might be starting up)
       }
     } catch (error) {
       console.error('Error fetching controls:', error);
-      // Use mock data on error
-      setControls([
-        {
-          id: '1',
-          control_id: 'CC6.1',
-          standard: 'SOC2',
-          title: 'Logical and Physical Access Controls',
-          description: 'The entity implements logical access security software, infrastructure, and architectures over protected information assets to protect them from security events to meet the entity\'s objectives.',
-          category: 'Access Control',
-          severity: 'high'
-        },
-        {
-          id: '2',
-          control_id: 'CC6.6',
-          standard: 'SOC2',
-          title: 'Network Security',
-          description: 'The entity implements logical access security measures to protect against threats from sources outside its system boundaries.',
-          category: 'Network Security',
-          severity: 'high'
-        },
-        {
-          id: '3',
-          control_id: 'HP-164.312(a)(2)(iv)',
-          standard: 'HIPAA',
-          title: 'Encryption and Decryption',
-          description: 'Implement a mechanism to encrypt and decrypt electronic protected health information.',
-          category: 'Data Protection',
-          severity: 'critical'
-        }
-      ]);
-      setMessage({ type: 'error', text: 'Failed to fetch controls, showing sample data' });
+      // Silently handle network errors - backend might be starting up
+      setControls([]);
     } finally {
       setLoading(false);
     }
@@ -176,7 +64,7 @@ export const AdminControls: React.FC = () => {
   // Fetch stored PDFs
   const fetchPDFs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/pdfs');
+      const response = await fetch(`${API_BASE_URL}/pdfs`);
       if (response.ok) {
         const data = await response.json();
         setPdfs(data.files || []);
@@ -198,7 +86,7 @@ export const AdminControls: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -231,7 +119,7 @@ export const AdminControls: React.FC = () => {
       setIngesting(true);
       setMessage(null);
 
-      const response = await fetch('http://localhost:8000/ingest', {
+      const response = await fetch(`${API_BASE_URL}/ingest`, {
         method: 'POST',
       });
 

@@ -194,4 +194,47 @@ export interface PersonaInsights {
   };
 }
 
+export interface CloudConnection {
+  id: string;
+  name: string;
+  provider: 'aws' | 'ibm_cloud' | 'azure' | 'gcp' | 'generic';
+  description?: string;
+  region?: string;
+  enabled: boolean;
+  status: 'active' | 'inactive' | 'error' | 'testing';
+  created_at: string;
+  updated_at: string;
+  last_tested_at?: string;
+  last_test_result?: string;
+  events_processed: number;
+  last_event_at?: string;
+  error_count: number;
+  config_summary: Record<string, any>;
+}
+
+export interface CloudConnectionCreate {
+  name: string;
+  provider: 'aws' | 'ibm_cloud' | 'azure' | 'gcp' | 'generic';
+  description?: string;
+  region?: string;
+  enabled: boolean;
+  config: Record<string, any>;
+}
+
+export interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+  details?: Record<string, any>;
+  tested_at: string;
+}
+
+export interface ConnectionStats {
+  total_connections: number;
+  active_connections: number;
+  inactive_connections: number;
+  error_connections: number;
+  total_events_processed: number;
+  connections_by_provider: Record<string, number>;
+}
+
 // Made with Bob
