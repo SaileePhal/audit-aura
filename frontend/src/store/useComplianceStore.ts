@@ -34,21 +34,10 @@ interface ComplianceState {
 export const useComplianceStore = create<ComplianceState>()(
   devtools(
     (set, get) => ({
-      // Initial state
+      // Initial state - empty until data is fetched
       alerts: [],
-      dashboardData: {
-        compliance_score: {
-          overall_score: 0.78,
-          standards: {
-            'SOC2': { score: 0.75, violations: 4, controls: 64 },
-            'HIPAA': { score: 0.72, violations: 2, controls: 45 },
-            'PCI-DSS': { score: 0.85, violations: 1, controls: 78 },
-            'ISO27001': { score: 0.88, violations: 0, controls: 114 },
-            'GDPR': { score: 0.80, violations: 1, controls: 32 }
-          }
-        }
-      },
-      complianceScore: 78,
+      dashboardData: null,
+      complianceScore: 0,
       violations: [],
       loading: false,
       error: null,

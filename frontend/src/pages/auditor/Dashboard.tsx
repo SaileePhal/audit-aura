@@ -16,7 +16,7 @@ interface AuditTrailEvent {
 }
 
 export const AuditorDashboard: React.FC = () => {
-  const { complianceScore, violations, fetchDashboard } = useComplianceStore();
+  const { complianceScore, violations, fetchDashboard, dashboardData } = useComplianceStore();
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [cloudConnections, setCloudConnections] = useState<any[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditTrailEvent[]>([]);
@@ -137,8 +137,8 @@ export const AuditorDashboard: React.FC = () => {
       // Create report content
       const reportData = {
         generated_at: new Date().toISOString(),
-        overall_score: Math.round((complianceScore?.overall_score || 0) * 100),
-        standards: Object.entries(complianceScore?.standards || {}).map(([name, data]: [string, any]) => ({
+        overall_score: Math.round((dashboardData?.compliance_score?.overall_score || 0) * 100),
+        standards: Object.entries(dashboardData?.compliance_score?.standards || {}).map(([name, data]: [string, any]) => ({
           name,
           score: Math.round(data.score * 100),
           violations: data.violations,
@@ -169,9 +169,9 @@ export const AuditorDashboard: React.FC = () => {
     }
   };
 
-  const overallScore = Math.round((complianceScore?.overall_score || 0) * 100);
+  const overallScore = Math.round((dashboardData?.compliance_score?.overall_score || 0) * 100);
   
-  const standardsData = Object.entries(complianceScore?.standards || {}).map(([name, data]: [string, any]) => ({
+  const standardsData = Object.entries(dashboardData?.compliance_score?.standards || {}).map(([name, data]: [string, any]) => ({
     name,
     score: Math.round(data.score * 100),
     violations: data.violations,
@@ -278,7 +278,7 @@ export const AuditorDashboard: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-500">Events Monitored:</span>
-                  <span className="font-medium text-dark-900">{connection.events_monitored.toLocaleString()}</span>
+                  <span className="font-medium text-dark-900">{(connection.events_monitored || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-dark-500">Region:</span>
@@ -422,7 +422,7 @@ export const AuditorDashboard: React.FC = () => {
                       <div className="flex items-center gap-3 mb-1 flex-wrap">
                         <span className="font-semibold text-dark-900">{event.control_id}</span>
                         <span className="text-xs text-dark-500">
-                          {new Date(event.timestamp).toLocaleString()}
+                          {event.timestamp ? new Date(event.timestamp).toLocaleString() : 'N/A'}
                         </span>
                         {event.pr_number && (
                           <a

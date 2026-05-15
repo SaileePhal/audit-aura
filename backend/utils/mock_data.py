@@ -103,15 +103,15 @@ class MockDataService:
         standards_list = self._data.get("standards", [])
         
         for standard in standards_list:
-            std_id = standard.get("id", "")
-            # Use the compliance_percentage from the standard itself if by_standard doesn't have it
-            std_score = by_standard.get(std_id, standard.get("compliance_percentage", 0)) / 100.0
+            std_name = standard.get("name", "")
+            # Use the score from by_standard if available, otherwise from the standard itself
+            std_score = by_standard.get(std_name, standard.get("score", 0))
             
             # Count violations for this standard
             violations = self.get_violations()
-            std_violations = len([v for v in violations if v.get("standard") == std_id])
+            std_violations = len([v for v in violations if v.get("standard") == std_name])
             
-            standards_dict[std_id] = {
+            standards_dict[std_name] = {
                 "score": std_score,
                 "violations": std_violations,
                 "controls": standard.get("total_controls", 0)

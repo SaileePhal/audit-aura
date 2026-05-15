@@ -204,7 +204,7 @@ export const SecurityIncidents: React.FC = () => {
                     <div className={`flex items-center gap-4 text-xs ${theme.text.tertiary}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(violation.timestamp).toLocaleString()}
+                        {violation.timestamp ? new Date(violation.timestamp).toLocaleString() : 'N/A'}
                       </span>
                       {violation.resource && (
                         <span className="flex items-center gap-1">
@@ -295,7 +295,7 @@ export const SecurityIncidents: React.FC = () => {
                 <div>
                   <label className={`text-xs font-medium ${theme.text.tertiary} uppercase`}>Detected At</label>
                   <p className={`text-sm ${theme.text.primary} mt-1`}>
-                    {new Date(selectedViolation.timestamp).toLocaleString()}
+                    {selectedViolation.timestamp ? new Date(selectedViolation.timestamp).toLocaleString() : 'N/A'}
                   </p>
                 </div>
 

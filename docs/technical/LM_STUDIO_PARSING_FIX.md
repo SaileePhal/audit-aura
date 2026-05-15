@@ -43,7 +43,7 @@ Enhanced the parsing logic in [`backend/core/extraction/extractor.py`](../../bac
 
 ## Test Results
 
-Created [`test_lm_studio_parsing.py`](../../test_lm_studio_parsing.py) to verify the fix:
+Created [`test_lm_studio_parsing.py`](../../tests/test_lm_studio_parsing.py) to verify the fix:
 
 ```
 Strategy 1: Direct JSON parse - ✗ FAILED
@@ -99,7 +99,7 @@ LM_STUDIO_MODEL=google/gemma-4-e2b
 ## Related Files
 
 - [`backend/core/extraction/extractor.py`](../../backend/core/extraction/extractor.py) - Main extraction logic
-- [`test_lm_studio_parsing.py`](../../test_lm_studio_parsing.py) - Test script
+- [`test_lm_studio_parsing.py`](../../tests/test_lm_studio_parsing.py) - Test script
 - [`docs/technical/LM_STUDIO_INTEGRATION.md`](./LM_STUDIO_INTEGRATION.md) - LM Studio setup guide
 
 ## Testing
@@ -107,13 +107,13 @@ LM_STUDIO_MODEL=google/gemma-4-e2b
 To test the parsing with your own LM Studio response:
 
 ```bash
-python3 test_lm_studio_parsing.py
+python3 tests/test_lm_studio_parsing.py
 ```
 
 To test full PDF extraction with LM Studio:
 
 ```bash
-python3 test_lm_studio_integration.py
+python3 tests/test_lm_studio_integration.py
 ```
 
 ## Status

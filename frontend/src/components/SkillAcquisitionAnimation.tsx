@@ -43,6 +43,7 @@ const SkillAcquisitionAnimation: React.FC<SkillAcquisitionAnimationProps> = ({
     }
   }, [currentIndex, skills.length, onComplete]);
 
+  // Move early returns AFTER all hooks
   if (!isVisible || skills.length === 0) {
     return null;
   }

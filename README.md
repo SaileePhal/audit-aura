@@ -97,6 +97,20 @@ cp .env.example .env
 # Edit .env and add your API keys
 ```
 
+**Important:** Generate an encryption key for secure credential storage:
+```bash
+python tests/fix_encryption_key.py
+```
+
+Or manually add to `.env`:
+```bash
+# Generate key
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+# Add to .env
+ENCRYPTION_KEY=your_generated_key_here
+```
+
 Optional variables (recommended for best performance):
 ```env
 OPENAI_API_KEY=your_openai_api_key_here  # Optional - uses Ollama if not set
@@ -432,6 +446,34 @@ MIT License - see LICENSE file for details
 For issues and questions:
 - GitHub Issues: [Create an issue](https://github.com/yourusername/aegis-ai/issues)
 - Email: support@aegisai.com
+
+## 🐛 Troubleshooting
+
+### Connection Test Failed: Decryption Error
+
+If you see an error like:
+```
+Connection test failed: Failed to decrypt configuration: Failed to decrypt data:
+```
+
+**Quick Fix:**
+```bash
+python tests/fix_encryption_key.py
+```
+
+This error occurs when the `ENCRYPTION_KEY` environment variable is not set or has changed. See the [Encryption Key Fix Guide](docs/troubleshooting/ENCRYPTION_KEY_FIX.md) for detailed instructions.
+
+**Alternative Solutions:**
+1. Set `ENCRYPTION_KEY` in `.env` file
+2. Delete corrupted connections: `curl -X POST http://localhost:8000/api/connections/cleanup/corrupted`
+3. Delete `backend/data/connections.json` and recreate connections
+
+### Other Issues
+
+For other troubleshooting topics, see:
+- [Troubleshooting Guide](docs/troubleshooting/TROUBLESHOOTING.md)
+- [Ollama Fallback](docs/technical/OLLAMA_FALLBACK.md)
+- [LM Studio Integration](docs/technical/LM_STUDIO_INTEGRATION.md)
 
 ## 🗺️ Roadmap
 

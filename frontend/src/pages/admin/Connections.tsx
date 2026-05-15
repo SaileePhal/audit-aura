@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cloud, Plus, RefreshCw, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Activity, X } from 'lucide-react';
 import { theme } from '@/config/theme';
 import { CloudConnection, ConnectionStats } from '@/types';
-import { apiService } from '@/services/api';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 type CloudProvider = 'aws' | 'ibm_cloud' | 'azure' | 'gcp' | 'generic';
 
@@ -16,6 +16,7 @@ interface ConnectionFormData {
 }
 
 export const AdminConnections: React.FC = () => {
+  const { toasts, removeToast, showSuccess, showWarning } = useToast();
   const [connections, setConnections] = useState<CloudConnection[]>([]);
   const [stats, setStats] = useState<ConnectionStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,10 +202,18 @@ export const AdminConnections: React.FC = () => {
       await loadConnections();
       await loadStats();
       resetForm();
-      alert(selectedConnection ? 'Connection updated successfully!' : 'Connection created successfully!');
+      showSuccess(
+        selectedConnection ? 'Connection Updated' : 'Connection Created',
+        selectedConnection
+          ? `${formData.name} has been updated successfully.`
+          : `${formData.name} has been created successfully.`
+      );
     } catch (error) {
       console.error('Failed to save connection:', error);
-      alert(`Failed to save connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showWarning(
+        'Failed to Save Connection',
+        error instanceof Error ? error.message : 'An unknown error occurred while saving the connection.'
+      );
     } finally {
       setSaving(false);
     }
@@ -733,8 +742,10 @@ export const AdminConnections: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className={`text-3xl font-bold ${theme.text.primary}`}>Cloud Connections</h1>
           <p className={`${theme.text.secondary} mt-1`}>Manage cloud provider connections and credentials</p>
@@ -786,7 +797,7 @@ export const AdminConnections: React.FC = () => {
               <div>
                 <p className={`text-sm ${theme.text.secondary}`}>Events Processed</p>
                 <p className={`text-2xl font-bold ${theme.text.primary} mt-1`}>
-                  {stats.total_events_processed.toLocaleString()}
+                  {(stats.total_events_processed || 0).toLocaleString()}
                 </p>
               </div>
               <Activity className="h-8 w-8 text-cyan-400" />
@@ -865,7 +876,7 @@ export const AdminConnections: React.FC = () => {
                         <div>
                           <p className={`${theme.text.secondary}`}>Events Processed</p>
                           <p className={`${theme.text.primary} font-medium`}>
-                            {connection.events_processed.toLocaleString()}
+                            {(connection.events_processed || 0).toLocaleString()}
                           </p>
                         </div>
                         <div>
@@ -1061,7 +1072,8 @@ export const AdminConnections: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

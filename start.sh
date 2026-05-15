@@ -92,8 +92,8 @@ sleep 5
 echo ""
 echo "🤖 Initializing Ollama with llama2 model..."
 echo "   (This may take a few minutes on first run)"
-chmod +x ollama-init.sh
-./ollama-init.sh &
+chmod +x scripts/ollama-init.sh
+./scripts/ollama-init.sh &
 OLLAMA_PID=$!
 
 # Check service health

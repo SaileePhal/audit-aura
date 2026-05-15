@@ -129,12 +129,21 @@ class DynamicEventSourceManager:
         logger.info(f"Created IBM Cloud source for region {config.get('region')} with sources: {', '.join(enabled_sources)}")
         return source
     
-    def _create_generic_source(self, config: Dict[str, Any]) -> GenericLogEventSource:
+    def _create_generic_source(self, config: Dict[str, Any]) -> Optional[GenericLogEventSource]:
         """Create generic log event source"""
-        # For generic sources, we'd need to implement custom logic
-        # For now, return a mock source
-        source = GenericLogEventSource(mock_mode=True)
-        logger.info("Created generic event source")
+        # Generic sources require custom implementation based on config
+        # Return None if not properly configured
+        log_endpoint = config.get('log_endpoint')
+        if not log_endpoint:
+            logger.warning("Generic source requires 'log_endpoint' in configuration")
+            return None
+        
+        source = GenericLogEventSource(
+            endpoint=log_endpoint,
+            auth_token=config.get('auth_token'),
+            mock_mode=False
+        )
+        logger.info(f"Created generic event source for endpoint: {log_endpoint}")
         return source
     
     def load_all_sources(self) -> List[Any]:
@@ -179,24 +188,23 @@ class DynamicEventSourceManager:
         Create an event aggregator with all enabled sources
         
         Args:
-            include_mock: Whether to include mock sources for testing
+            include_mock: Whether to include mock sources for testing (deprecated for production)
             
         Returns:
             Event aggregator instance
         """
         sources = self.load_all_sources()
         
-        # Add mock sources if requested and no real sources available
-        if include_mock and len(sources) == 0:
-            logger.info("No real sources available, adding mock sources")
-            sources.extend([
-                CloudWatchEventSource(mock_mode=True),
-                IBMCloudEventSource(mock_mode=True),
-                GenericLogEventSource(mock_mode=True)
-            ])
+        # Production mode: Only use real cloud connections
+        # Mock sources are disabled for production readiness
+        if len(sources) == 0:
+            logger.warning(
+                "No event sources available. Please configure cloud connections in Admin → Connections. "
+                "The system will not generate any events until real connections are added."
+            )
         
         self.aggregator = EventAggregator(sources)
-        logger.info(f"Created event aggregator with {len(sources)} sources")
+        logger.info(f"Created event aggregator with {len(sources)} real source(s)")
         
         return self.aggregator
     
@@ -211,7 +219,7 @@ class DynamicEventSourceManager:
             Events from all sources
         """
         if not self.aggregator:
-            self.create_aggregator(include_mock=True)
+            self.create_aggregator(include_mock=False)
         
         logger.info("Starting event monitoring")
         
@@ -255,8 +263,8 @@ class DynamicEventSourceManager:
         # Clear active sources
         self.active_sources.clear()
         
-        # Create new aggregator
-        self.create_aggregator(include_mock=True)
+        # Create new aggregator (production mode - no mocks)
+        self.create_aggregator(include_mock=False)
         
         logger.info("Event sources reloaded")
     

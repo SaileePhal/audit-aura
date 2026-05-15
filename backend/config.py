@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class Config(BaseModel):
     """Application configuration"""
     
+    # Encryption Configuration
+    encryption_key: Optional[str] = Field(default=None, env='ENCRYPTION_KEY')
+    
     # OpenAI Configuration
     openai_api_key: Optional[str] = Field(default=None, env='OPENAI_API_KEY')
     openai_enabled: bool = Field(default=False, env='OPENAI_ENABLED')
@@ -65,6 +68,17 @@ class Config(BaseModel):
     api_host: str = Field(default='0.0.0.0', env='API_HOST')
     api_port: int = Field(default=8000, env='API_PORT')
     
+    @validator('encryption_key')
+    def validate_encryption_key(cls, v):
+        # Warn if encryption key is not set or is a placeholder
+        if not v or v == 'your_encryption_key_here':
+            logger.warning(
+                'ENCRYPTION_KEY is not set or is a placeholder. '
+                'A temporary key will be generated, but encrypted data will not persist across restarts. '
+                'Generate a key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+            )
+        return v
+    
     @validator('openai_api_key')
     def validate_openai_key(cls, v, values):
         # Only validate if OpenAI is enabled
@@ -96,6 +110,7 @@ def load_config() -> Config:
     """Load and validate configuration from environment"""
     try:
         config = Config(
+            encryption_key=os.getenv('ENCRYPTION_KEY'),
             openai_api_key=os.getenv('OPENAI_API_KEY'),
             openai_enabled=os.getenv('OPENAI_ENABLED', 'false').lower() == 'true',
             ollama_host=os.getenv('OLLAMA_HOST', 'http://ollama:11434'),

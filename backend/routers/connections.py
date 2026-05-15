@@ -313,4 +313,36 @@ async def get_connection_stats():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.post("/cleanup/corrupted", status_code=200)
+async def cleanup_corrupted_connections():
+    """
+    Remove connections that cannot be decrypted (due to encryption key mismatch)
+    
+    Returns:
+        Number of connections removed
+    """
+    try:
+        manager = get_connection_manager()
+        connections = list(manager.connections.values())
+        removed_count = 0
+        
+        for conn in connections:
+            try:
+                # Try to decrypt the config
+                manager.get_decrypted_config(conn.id)
+            except ValueError:
+                # Cannot decrypt - remove this connection
+                manager.delete_connection(conn.id)
+                removed_count += 1
+                logger.info(f"Removed corrupted connection: {conn.name} ({conn.id})")
+        
+        return {
+            "message": f"Removed {removed_count} corrupted connection(s)",
+            "removed_count": removed_count
+        }
+    except Exception as e:
+        logger.error(f"Failed to cleanup corrupted connections: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # Made with Bob

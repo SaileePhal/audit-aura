@@ -42,22 +42,51 @@ class ComplianceTracker:
         event: Dict[str, Any]
     ):
         """
-        Record a compliance violation
+        Record a compliance violation with deduplication
         
         Args:
             violation: Violated control
             event: Event that triggered the violation
         """
         standard = violation.get('standard', 'Unknown')
+        control_id = violation.get('control_id')
         
+        # Check for duplicate active violations (same control_id, standard, and resource)
+        resource_identifier = self._get_resource_identifier(event)
+        
+        # Look for existing active violation
+        existing_violation = None
+        for v in self.violations[standard]:
+            if (not v['resolved'] and
+                v['control_id'] == control_id and
+                self._get_resource_identifier(v.get('event', {})) == resource_identifier):
+                existing_violation = v
+                break
+        
+        if existing_violation:
+            # Update existing violation timestamp and event
+            existing_violation['last_seen'] = datetime.utcnow().isoformat()
+            existing_violation['occurrence_count'] = existing_violation.get('occurrence_count', 1) + 1
+            existing_violation['event'] = event  # Update with latest event
+            logger.info(
+                f"Updated existing violation for {standard}: {control_id} "
+                f"(occurrence #{existing_violation['occurrence_count']})"
+            )
+            return
+        
+        # Create new violation record
         violation_record = {
-            'control_id': violation.get('control_id'),
+            'control_id': control_id,
             'standard': standard,
             'category': violation.get('category'),
             'severity': violation.get('severity'),
+            'description': violation.get('control_description', violation.get('description', '')),
             'timestamp': datetime.utcnow().isoformat(),
+            'last_seen': datetime.utcnow().isoformat(),
+            'occurrence_count': 1,
             'event': event,
-            'resolved': False
+            'resolved': False,
+            'resource_identifier': resource_identifier
         }
         
         self.violations[standard].append(violation_record)
@@ -68,7 +97,36 @@ class ComplianceTracker:
             self.violation_history = self.violation_history[-1000:]
         
         self._recalculate_scores()
-        logger.info(f"Recorded violation for {standard}: {violation.get('control_id')}")
+        logger.info(f"Recorded new violation for {standard}: {control_id}")
+    
+    def _get_resource_identifier(self, event: Dict[str, Any]) -> str:
+        """
+        Generate a unique identifier for the resource in the event
+        
+        Args:
+            event: Event data
+            
+        Returns:
+            Resource identifier string
+        """
+        # Try to identify the resource uniquely
+        resource_name = event.get('resource_name', '')
+        resource_type = event.get('resource_type', '')
+        resource_id = event.get('resource_id', '')
+        
+        # For bucket-related events
+        if 'bucket' in resource_type.lower() or 'bucket_name' in event:
+            bucket_name = event.get('bucket_name') or resource_name
+            return f"bucket:{bucket_name}"
+        
+        # For other resources, combine type and name/id
+        if resource_id:
+            return f"{resource_type}:{resource_id}"
+        elif resource_name:
+            return f"{resource_type}:{resource_name}"
+        
+        # Fallback to event source and name
+        return f"{event.get('source', 'unknown')}:{event.get('event_name', 'unknown')}"
     
     def resolve_violation(self, control_id: str, standard: str):
         """

@@ -16,6 +16,9 @@ from datetime import datetime
 # Import configuration
 from config import get_config
 
+# Import infrastructure
+from infrastructure.security.encryption import get_encryption_service
+
 # Import services
 from services.extractor import ComplianceExtractor
 from services.vector_store import VectorStore, get_vector_store
@@ -36,6 +39,7 @@ from services.skills import get_skill_registry, SkillCategory
 
 # Import routers
 from routers.connections import router as connections_router
+from routers.remediations import router as remediations_router
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -58,6 +62,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(connections_router)
+app.include_router(remediations_router)
 
 # Setup PDF storage directory
 PDF_STORAGE_DIR = Path("./data/pdfs")
@@ -107,6 +112,10 @@ async def startup_event():
         # Load configuration
         config = get_config()
         logger.info("Configuration loaded successfully")
+        
+        # Initialize encryption service with config's encryption key
+        encryption_service = get_encryption_service(encryption_key=config.encryption_key)
+        logger.info("Encryption service initialized")
         
         # Initialize extractor with configurable extraction methods
         extractor = ComplianceExtractor(
@@ -686,7 +695,6 @@ async def get_dashboard():
             dashboard_data = {
                 "compliance_score": mock_service.get_compliance_scores(live=True),
                 "violations": mock_service.get_violations(),
-                "standards": mock_service.get_standards(),
                 "cloud_connections": mock_service.get_cloud_event_trackers(),
                 "configuration_drift": mock_service._data.get("configuration_drift"),
                 "persona_insights": mock_service._data.get("persona_insights"),
@@ -724,7 +732,6 @@ async def get_dashboard():
             dashboard_data = {
                 "compliance_score": score_data,
                 "violations": violations_list,
-                "standards": score_data.get("standards", {}),
                 "cloud_connections": cloud_connections,
                 "recent_events": [],  # Would come from event aggregator
                 "security_metrics": {
@@ -759,28 +766,64 @@ async def get_violations(standard: Optional[str] = None):
 @app.get("/violations/details")
 async def get_violation_details(
     status: Optional[str] = None,
-    severity: Optional[str] = None
+    severity: Optional[str] = None,
+    include_resolved: bool = False
 ):
     """
-    Get detailed violations with filtering
+    Get detailed violations with filtering from compliance tracker
     
     Args:
-        status: Filter by status (open, in_progress, resolved)
+        status: Filter by status (resolved/unresolved)
         severity: Filter by severity (critical, high, medium, low)
+        include_resolved: Include resolved violations
         
     Returns:
-        List of violations with full details including root cause and fix steps
+        List of violations with full details
     """
     try:
-        mock_service = get_mock_data_service()
-        violations = mock_service.get_violations(status=status, severity=severity)
+        # Get violations from tracker
+        all_violations = tracker.get_all_violations(include_resolved=include_resolved)
+        
+        # Apply filters
+        filtered_violations = all_violations
+        
+        if severity:
+            filtered_violations = [v for v in filtered_violations if v.get('severity') == severity]
+        
+        if status == 'resolved':
+            filtered_violations = [v for v in filtered_violations if v.get('resolved')]
+        elif status == 'unresolved':
+            filtered_violations = [v for v in filtered_violations if not v.get('resolved')]
+        
+        # Sort by timestamp (most recent first)
+        filtered_violations.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Calculate stats
+        stats = {
+            'total': len(filtered_violations),
+            'by_severity': {},
+            'by_standard': {},
+            'by_category': {},
+            'resolved': len([v for v in filtered_violations if v.get('resolved')]),
+            'unresolved': len([v for v in filtered_violations if not v.get('resolved')])
+        }
+        
+        for v in filtered_violations:
+            sev = v.get('severity', 'unknown')
+            std = v.get('standard', 'Unknown')
+            cat = v.get('category', 'Unknown')
+            
+            stats['by_severity'][sev] = stats['by_severity'].get(sev, 0) + 1
+            stats['by_standard'][std] = stats['by_standard'].get(std, 0) + 1
+            stats['by_category'][cat] = stats['by_category'].get(cat, 0) + 1
+        
         return {
-            "violations": violations,
-            "total": len(violations),
-            "stats": mock_service.get_violation_stats()
+            "violations": filtered_violations,
+            "total": len(filtered_violations),
+            "stats": stats
         }
     except Exception as e:
-        logger.error(f"Error getting violation details: {e}")
+        logger.error(f"Error getting violation details: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -1,24 +1,31 @@
 {
   "violations": [],
   "compliance_scores": {
-    "overall": 0.85,
-    "by_standard": {}
+    "overall": 1.0,
+    "by_standard": {
+      "SOC2": 1.0,
+      "ISO27001": 1.0,
+      "HIPAA": 1.0,
+      "PCI-DSS": 1.0
+    }
   },
   "standards": [],
   "recent_events": [],
-  "security_metrics": {},
+  "security_metrics": {
+    "total_violations": 0,
+    "critical_violations": 0,
+    "high_violations": 0,
+    "medium_violations": 0,
+    "low_violations": 0,
+    "open_violations": 0,
+    "resolved_violations": 0,
+    "average_resolution_time": "0 hours",
+    "compliance_trend": "stable"
+  },
   "live_score_simulation": {
     "enabled": true,
     "update_interval_seconds": 30,
-    "score_variations": [
-      -0.02,
-      -0.01,
-      0,
-      0,
-      0,
-      0.01,
-      0.02
-    ],
+    "score_variations": [-0.02, -0.01, 0, 0, 0, 0.01, 0.02],
     "min_score": 0.7,
     "max_score": 0.95
   }

@@ -186,6 +186,7 @@ class CloudConnectionResponse(CloudConnectionBase):
     events_processed: int = 0
     last_event_at: Optional[datetime] = None
     error_count: int = 0
+    last_error: Optional[str] = Field(None, description="Last error message")
     
     # Config summary (non-sensitive fields only)
     config_summary: Dict[str, Any] = Field(default_factory=dict, description="Non-sensitive config summary")

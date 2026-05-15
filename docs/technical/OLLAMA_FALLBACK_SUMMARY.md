@@ -31,7 +31,7 @@ Successfully implemented automatic fallback from OpenAI to Ollama (local LLM) wh
 
 ### 2. Ollama Initialization
 
-**Created `ollama-init.sh`**:
+**Created [`scripts/ollama-init.sh`](../../scripts/ollama-init.sh)**:
 - Script to pull phi4-mini model on startup (smaller, memory-efficient)
 - Runs in background during container initialization
 
@@ -161,7 +161,7 @@ curl -X POST http://localhost:8000/upload-pdf -F "file=@SOC2.pdf"
 ## Files Modified
 
 1. **backend/services/extractor.py** - Core fallback logic
-2. **ollama-init.sh** - Ollama initialization script
+2. **scripts/ollama-init.sh** - Ollama initialization script
 3. **start.sh** - Integrated Ollama setup
 4. **README.md** - Updated documentation
 5. **OLLAMA_FALLBACK.md** - Comprehensive guide

@@ -279,7 +279,7 @@ Restart LM Studio daily if running continuously to prevent memory leaks.
 ### Test 1: Basic Connectivity
 
 ```bash
-python test_lm_studio_integration.py
+python tests/test_lm_studio_integration.py
 ```
 
 Expected output:

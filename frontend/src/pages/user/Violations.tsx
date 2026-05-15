@@ -54,7 +54,7 @@ export const UserViolations: React.FC = () => {
         body: JSON.stringify({
           violation_id: violation.id,
           title: `Fix: ${violation.control_id} - ${violation.description.substring(0, 50)}`,
-          description: `## Compliance Violation Fix\n\n**Control ID:** ${violation.control_id}\n**Severity:** ${violation.severity}\n\n**Description:**\n${violation.description}\n\n**Remediation Steps:**\n${violation.remediation || 'See violation details'}\n\nThis PR addresses the compliance violation detected on ${new Date(violation.timestamp).toLocaleString()}.`,
+          description: `## Compliance Violation Fix\n\n**Control ID:** ${violation.control_id}\n**Severity:** ${violation.severity}\n\n**Description:**\n${violation.description}\n\n**Remediation Steps:**\n${violation.remediation || 'See violation details'}\n\nThis PR addresses the compliance violation detected on ${violation.timestamp ? new Date(violation.timestamp).toLocaleString() : 'N/A'}.`,
         }),
       });
 
@@ -409,7 +409,7 @@ export const UserViolations: React.FC = () => {
                 </div>
                 
                 <div className={`text-right text-sm ${theme.text.tertiary} flex-shrink-0`}>
-                  {new Date(violation.timestamp).toLocaleString()}
+                  {violation.timestamp ? new Date(violation.timestamp).toLocaleString() : 'N/A'}
                 </div>
               </div>
             </div>

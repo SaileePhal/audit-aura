@@ -92,7 +92,7 @@ ollama:
     - ollama_data:/root/.ollama
 ```
 
-**Initialization Script** (`ollama-init.sh`):
+**Initialization Script** ([`scripts/ollama-init.sh`](../../scripts/ollama-init.sh)):
 ```bash
 #!/bin/bash
 echo "Pulling phi4-mini model (optimized for low memory)..."
@@ -210,7 +210,7 @@ docker ps | grep ollama
 docker-compose restart ollama
 
 # Pull phi4-mini model
-./ollama-init.sh
+./scripts/ollama-init.sh
 ```
 
 ### Issue: Slow Ollama Performance

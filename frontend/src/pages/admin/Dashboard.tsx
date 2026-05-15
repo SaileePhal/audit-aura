@@ -236,10 +236,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  if (loading && !complianceScore) {
-    return <LoadingSpinner fullScreen message="Loading dashboard..." />;
-  }
-
   const totalControls = dashboardData?.compliance_score?.total_controls || 0;
   const totalViolations = dashboardData?.compliance_score?.total_violations || violations.length || 0;
   // Handle both decimal (0.78) and percentage (78) formats
@@ -356,6 +352,11 @@ const AdminDashboard: React.FC = () => {
     }
   }, [activeProvider, groupedSources, providerNames]);
 
+  // Move loading check after all hooks
+  if (loading && !complianceScore) {
+    return <LoadingSpinner fullScreen message="Loading dashboard..." />;
+  }
+
   const activeProviderConnections = groupedSources[activeProvider] || [];
 
   return (
@@ -374,9 +375,6 @@ const AdminDashboard: React.FC = () => {
                 </h1>
               </div>
             </div>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-              Executive summary of compliance posture, unresolved risk, and the most important actions requiring attention.
-            </p>
           </div>
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
@@ -955,7 +953,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Events</p>
-                      <p className="mt-1 font-semibold text-slate-900">{connection.events_monitored.toLocaleString()}</p>
+                      <p className="mt-1 font-semibold text-slate-900">{(connection.events_monitored || 0).toLocaleString()}</p>
                     </div>
                     <div className={subCardClassName}>
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Changes</p>

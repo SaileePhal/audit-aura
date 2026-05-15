@@ -13,6 +13,11 @@ from cryptography.fernet import Fernet
 logger = logging.getLogger(__name__)
 
 
+def get_encryption_key_from_env() -> Optional[str]:
+    """Get encryption key from environment variable"""
+    return os.getenv('ENCRYPTION_KEY')
+
+
 class EncryptionService:
     """Service for encrypting and decrypting sensitive data"""
     
@@ -203,11 +208,18 @@ class EncryptionService:
 _encryption_service: Optional[EncryptionService] = None
 
 
-def get_encryption_service() -> EncryptionService:
-    """Get the global encryption service instance"""
+def get_encryption_service(encryption_key: Optional[str] = None) -> EncryptionService:
+    """
+    Get the global encryption service instance
+    
+    Args:
+        encryption_key: Optional encryption key. If not provided, will use environment variable.
+    """
     global _encryption_service
     if _encryption_service is None:
-        _encryption_service = EncryptionService()
+        # Use provided key or get from environment
+        key = encryption_key or get_encryption_key_from_env()
+        _encryption_service = EncryptionService(encryption_key=key)
     return _encryption_service
 
 

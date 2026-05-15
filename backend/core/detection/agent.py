@@ -19,7 +19,10 @@ from core.detection.skills.detection.control_based import (
     create_detection_skills_from_controls,
 )
 from core.detection.skills.analysis.security_impact import SecurityImpactAnalysisSkill
+from core.detection.skills.analysis.policy_drift_impact import PolicyDriftImpactAnalysisSkill
 from core.detection.skills.remediation.plan_generator import RemediationGenerationSkill
+from core.detection.skills.remediation.approval_based_remediation import ApprovalBasedRemediationSkill
+from core.detection.skills.detection.cos_policy_drift import COSPolicyDriftDetectionSkill
 from core.compliance.tracker import get_tracker
 from infrastructure.messaging.websocket import ws_manager
 from infrastructure.database.vector_store import get_vector_store
@@ -98,9 +101,16 @@ class SkillBasedDetectionSystem:
                 else:
                     logger.info(f"Skipping disabled skill: {skill.skill_id}")
             
+            # Register COS policy drift detection skill
+            self.skill_registry.register(COSPolicyDriftDetectionSkill())
+            
             # Register analysis skills
             self.skill_registry.register(SecurityImpactAnalysisSkill())
+            self.skill_registry.register(PolicyDriftImpactAnalysisSkill())
+            
+            # Register remediation skills
             self.skill_registry.register(RemediationGenerationSkill())
+            self.skill_registry.register(ApprovalBasedRemediationSkill())
             
             # Create skill-based agents
             self.detection_agent = SkillBasedAgent(

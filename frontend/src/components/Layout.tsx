@@ -21,6 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
       { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
       { name: 'Controls', href: '/admin/controls', icon: FileText },
       { name: 'Connections', href: '/admin/connections', icon: Cloud },
+      { name: 'Violations', href: '/admin/violations', icon: AlertTriangle },
       { name: 'Agent Skills', href: '/admin/skills', icon: Zap },
       { name: 'Settings', href: '/admin/settings', icon: Settings },
     ],

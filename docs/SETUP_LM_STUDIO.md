@@ -50,7 +50,7 @@ OLLAMA_HOST=http://ollama:11434
 Run the test script:
 
 ```bash
-python test_lm_studio_integration.py
+python tests/test_lm_studio_integration.py
 ```
 
 Expected output:

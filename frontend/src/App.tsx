@@ -11,6 +11,7 @@ import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminControls } from './pages/admin/Controls';
 import { AdminSettings } from './pages/admin/Settings';
 import { AdminConnections } from './pages/admin/Connections';
+import { AdminViolations } from './pages/admin/Violations';
 import AdminSkills from './pages/admin/Skills';
 import { UserDashboard } from './pages/user/Dashboard';
 import { UserViolations } from './pages/user/Violations';
@@ -122,6 +123,7 @@ function App() {
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin/controls" element={<AdminControls />} />
                   <Route path="/admin/connections" element={<AdminConnections />} />
+                  <Route path="/admin/violations" element={<AdminViolations />} />
                   <Route path="/admin/skills" element={<AdminSkills />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                 </>

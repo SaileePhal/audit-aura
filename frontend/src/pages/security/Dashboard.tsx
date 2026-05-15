@@ -182,7 +182,7 @@ export const SecurityDashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="glass rounded-lg p-2">
                   <span className="text-xs text-dark-500">Events</span>
-                  <div className="font-medium text-dark-900 mt-1">{connection.events_monitored.toLocaleString()}</div>
+                  <div className="font-medium text-dark-900 mt-1">{(connection.events_monitored || 0).toLocaleString()}</div>
                 </div>
                 <div className="glass rounded-lg p-2">
                   <span className="text-xs text-dark-500">Changes</span>
@@ -372,7 +372,7 @@ export const SecurityDashboard: React.FC = () => {
                   )}
                 </div>
                 <div className="text-right text-xs text-dark-500">
-                  {new Date(violation.timestamp).toLocaleString()}
+                  {violation.timestamp ? new Date(violation.timestamp).toLocaleString() : 'N/A'}
                 </div>
               </div>
             </div>

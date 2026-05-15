@@ -117,7 +117,7 @@ The `App.tsx` component extracts `message.data.skills` and passes it to the anim
 ### Automated Test
 Run the test script:
 ```bash
-python test_skill_animation.py
+python tests/test_skill_animation.py
 ```
 
 This script simulates the backend broadcasting a `skills_acquired` message.
@@ -166,7 +166,7 @@ Skills are broadcasted in these scenarios:
 3. **`backend/main.py`** - Added `broadcast_new_skills=True` to initial system initialization
    - Line 856: Added flag to broadcast skills on startup
 
-4. **`test_skill_animation.py`** - Created test script (new file)
+4. **`tests/test_skill_animation.py`** - Created test script (new file)
 
 5. **`docs/SKILL_ANIMATION_FIX.md`** - This documentation (new file)
 

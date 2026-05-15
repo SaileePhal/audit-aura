@@ -244,8 +244,17 @@ class ConnectionManager:
         try:
             return self.encryption_service.decrypt(connection.config_encrypted)
         except Exception as e:
-            logger.error(f"Failed to decrypt config for {connection_id}: {e}")
-            raise ValueError(f"Failed to decrypt configuration: {str(e)}")
+            # Log detailed error to CLI for administrators
+            logger.error(
+                f"Failed to decrypt config for connection '{connection.name}' ({connection_id}). "
+                f"This usually happens when ENCRYPTION_KEY is not set or has changed. "
+                f"Solutions: 1) Set ENCRYPTION_KEY in .env file, "
+                f"2) Run 'python fix_encryption_key.py', "
+                f"3) Delete and recreate this connection. "
+                f"Error details: {e}"
+            )
+            # User-friendly error message
+            raise ValueError("Unable to decrypt connection credentials. Please check server logs or contact your administrator.")
     
     async def test_connection(self, connection_id: str) -> ConnectionTestResponse:
         """
@@ -547,6 +556,7 @@ class ConnectionManager:
             events_processed=connection.events_processed,
             last_event_at=connection.last_event_at,
             error_count=connection.error_count,
+            last_error=connection.last_error,
             config_summary=config_summary
         )
     
