@@ -40,6 +40,7 @@ from services.skills import get_skill_registry, SkillCategory
 # Import routers
 from routers.connections import router as connections_router
 from routers.remediations import router as remediations_router
+from routers.agents import router as agents_router
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -63,6 +64,7 @@ app.add_middleware(
 # Include routers
 app.include_router(connections_router)
 app.include_router(remediations_router)
+app.include_router(agents_router)
 
 # Setup PDF storage directory
 PDF_STORAGE_DIR = Path("./data/pdfs")

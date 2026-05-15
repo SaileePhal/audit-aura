@@ -30,6 +30,17 @@ class Config(BaseModel):
     lm_studio_model: str = Field(default='google/gemma-2-9b', env='LM_STUDIO_MODEL')
     lm_studio_enabled: bool = Field(default=True, env='LM_STUDIO_ENABLED')
     
+    # Google Gemini Configuration
+    google_api_key: Optional[str] = Field(default=None, env='GOOGLE_API_KEY')
+    gemini_model: str = Field(default='gemini-1.5-flash', env='GEMINI_MODEL')
+    gemini_enabled: bool = Field(default=False, env='GEMINI_ENABLED')
+    
+    # OpenCode.ai Zen Configuration
+    opencode_api_key: Optional[str] = Field(default=None, env='OPENCODE_API_KEY')
+    opencode_model: str = Field(default='zen-1.0', env='OPENCODE_MODEL')
+    opencode_base_url: str = Field(default='https://api.opencode.ai/v1', env='OPENCODE_BASE_URL')
+    opencode_enabled: bool = Field(default=False, env='OPENCODE_ENABLED')
+    
     # Email Configuration
     smtp_host: Optional[str] = Field(default=None, env='SMTP_HOST')
     smtp_port: int = Field(default=587, env='SMTP_PORT')
@@ -119,6 +130,13 @@ def load_config() -> Config:
             lm_studio_host=os.getenv('LM_STUDIO_HOST', 'http://localhost:1234'),
             lm_studio_model=os.getenv('LM_STUDIO_MODEL', 'google/gemma-2-9b'),
             lm_studio_enabled=os.getenv('LM_STUDIO_ENABLED', 'true').lower() == 'true',
+            google_api_key=os.getenv('GOOGLE_API_KEY'),
+            gemini_model=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash'),
+            gemini_enabled=os.getenv('GEMINI_ENABLED', 'false').lower() == 'true',
+            opencode_api_key=os.getenv('OPENCODE_API_KEY'),
+            opencode_model=os.getenv('OPENCODE_MODEL', 'zen-1.0'),
+            opencode_base_url=os.getenv('OPENCODE_BASE_URL', 'https://api.opencode.ai/v1'),
+            opencode_enabled=os.getenv('OPENCODE_ENABLED', 'false').lower() == 'true',
             smtp_host=os.getenv('SMTP_HOST'),
             smtp_port=int(os.getenv('SMTP_PORT', '587')),
             smtp_user=os.getenv('SMTP_USER'),
