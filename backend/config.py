@@ -55,7 +55,7 @@ class Config(BaseModel):
     
     # Application Configuration
     log_level: str = Field(default='INFO', env='LOG_LEVEL')
-    mock_mode: bool = Field(default=True, env='MOCK_MODE')
+    mock_mode: bool = Field(default=True, env='MOCK_MODE')  # Only affects dashboard fallback data, not event sources
     compliance_check_interval: int = Field(default=30, env='COMPLIANCE_CHECK_INTERVAL')
     
     # Database Configuration
@@ -149,7 +149,7 @@ def load_config() -> Config:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         
-        logger.info(f"Configuration loaded successfully (Mock Mode: {config.mock_mode})")
+        logger.info(f"Configuration loaded successfully (Mock Mode for Dashboard: {config.mock_mode})")
         return config
         
     except Exception as e:

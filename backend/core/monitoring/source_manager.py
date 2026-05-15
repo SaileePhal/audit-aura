@@ -81,8 +81,7 @@ class DynamicEventSourceManager:
         
         # Create event source with real credentials
         source = CloudWatchEventSource(
-            region=config.get('region', 'us-east-1'),
-            mock_mode=False
+            region=config.get('region', 'us-east-1')
         )
         
         # Override client with authenticated session
@@ -108,14 +107,19 @@ class DynamicEventSourceManager:
             logger.info("No IBM Cloud event sources are enabled for this connection")
             return None
         
+        # Validate API key
+        api_key = config.get('api_key')
+        if not api_key:
+            logger.error("IBM Cloud API key is required but not provided")
+            return None
+        
         # Create source with enabled services
         source = IBMCloudEventSource(
-            api_key=config.get('api_key'),
+            api_key=api_key,
             region=config.get('region', 'us-south'),
             activity_tracker_instance_id=config.get('activity_tracker_instance_id') if activity_tracker_enabled else None,
             monitoring_instance_id=config.get('monitoring_instance_id') if monitoring_enabled else None,
-            logs_instance_id=config.get('logs_instance_id') if platform_logs_enabled else None,
-            mock_mode=False
+            logs_instance_id=config.get('logs_instance_id') if platform_logs_enabled else None
         )
         
         enabled_sources = []
@@ -140,8 +144,7 @@ class DynamicEventSourceManager:
         
         source = GenericLogEventSource(
             endpoint=log_endpoint,
-            auth_token=config.get('auth_token'),
-            mock_mode=False
+            auth_token=config.get('auth_token')
         )
         logger.info(f"Created generic event source for endpoint: {log_endpoint}")
         return source
@@ -183,20 +186,16 @@ class DynamicEventSourceManager:
         
         return sources
     
-    def create_aggregator(self, include_mock: bool = False) -> EventAggregator:
+    def create_aggregator(self) -> EventAggregator:
         """
         Create an event aggregator with all enabled sources
         
-        Args:
-            include_mock: Whether to include mock sources for testing (deprecated for production)
-            
         Returns:
             Event aggregator instance
         """
         sources = self.load_all_sources()
         
-        # Production mode: Only use real cloud connections
-        # Mock sources are disabled for production readiness
+        # Only use real cloud connections - no mock data
         if len(sources) == 0:
             logger.warning(
                 "No event sources available. Please configure cloud connections in Admin → Connections. "
@@ -204,7 +203,7 @@ class DynamicEventSourceManager:
             )
         
         self.aggregator = EventAggregator(sources)
-        logger.info(f"Created event aggregator with {len(sources)} real source(s)")
+        logger.info(f"Created event aggregator with {len(sources)} live source(s)")
         
         return self.aggregator
     
@@ -219,7 +218,11 @@ class DynamicEventSourceManager:
             Events from all sources
         """
         if not self.aggregator:
-            self.create_aggregator(include_mock=False)
+            self.create_aggregator()
+        
+        if not self.aggregator:
+            logger.error("Failed to create event aggregator")
+            return
         
         logger.info("Starting event monitoring")
         
@@ -263,8 +266,8 @@ class DynamicEventSourceManager:
         # Clear active sources
         self.active_sources.clear()
         
-        # Create new aggregator (production mode - no mocks)
-        self.create_aggregator(include_mock=False)
+        # Create new aggregator with live sources only
+        self.create_aggregator()
         
         logger.info("Event sources reloaded")
     

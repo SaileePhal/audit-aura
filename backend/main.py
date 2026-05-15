@@ -153,9 +153,9 @@ async def startup_event():
         # Initialize dynamic event source manager
         dynamic_source_manager = get_dynamic_source_manager()
         
-        # Create event aggregator from stored connections or use mock mode
-        event_aggregator = dynamic_source_manager.create_aggregator(include_mock=config.mock_mode)
-        logger.info(f"Event aggregator initialized with dynamic sources (Mock Mode: {config.mock_mode})")
+        # Create event aggregator from stored connections (live data only)
+        event_aggregator = dynamic_source_manager.create_aggregator()
+        logger.info("Event aggregator initialized with dynamic sources (Live Mode)")
         
         # Log source status
         source_status = dynamic_source_manager.get_source_status()
@@ -209,7 +209,7 @@ async def health_check():
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "mock_mode": config.mock_mode if config else True,
+        "mock_mode": config.mock_mode if config else True,  # Only affects dashboard fallback data
         "services": {
             "extractor": extractor is not None,
             "vector_store": vector_store is not None,
@@ -685,11 +685,12 @@ async def get_compliance_score(standard: Optional[str] = None):
 
 @app.get("/dashboard")
 async def get_dashboard():
-    """Get comprehensive dashboard data - respects MOCK_MODE setting"""
+    """Get comprehensive dashboard data - uses MOCK_MODE for fallback demo data only"""
     try:
-        # Check if mock mode is enabled
+        # Check if mock mode is enabled for dashboard fallback
+        # Note: Event sources always use live data; mock_mode only affects dashboard display
         if config.mock_mode:
-            # Use mock data service for rich demo data
+            # Use mock data service for rich demo data (dashboard display only)
             mock_service = get_mock_data_service()
             
             dashboard_data = {
