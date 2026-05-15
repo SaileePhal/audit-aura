@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Clock, AlertTriangle, CheckCircle, XCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiService } from '../../services/api';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 interface RemediationSummary {
   id: string;
@@ -23,6 +24,7 @@ interface RemediationDetail {
 }
 
 const Remediations: React.FC = () => {
+  const { toasts, removeToast, showSuccess, showWarning } = useToast();
   const [remediations, setRemediations] = useState<RemediationSummary[]>([]);
   const [selectedRemediation, setSelectedRemediation] = useState<RemediationDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ const Remediations: React.FC = () => {
 
   const handleApproval = async (remediationId: string) => {
     if (!approvalAction) {
-      alert('Please select an action');
+      showWarning('Action Required', 'Please select an action');
       return;
     }
 
@@ -73,7 +75,7 @@ const Remediations: React.FC = () => {
         comments: comments || undefined
       });
 
-      alert('Approval decision submitted successfully');
+      showSuccess('Approval Submitted', 'Approval decision submitted successfully');
       setApprovalAction('');
       setComments('');
       setExpandedId(null);
@@ -81,7 +83,7 @@ const Remediations: React.FC = () => {
       fetchRemediations();
     } catch (error: any) {
       console.error('Failed to submit approval:', error);
-      alert(`Failed to submit approval: ${error.response?.data?.detail || error.message}`);
+      showWarning('Approval Failed', error.response?.data?.detail || error.message || 'Failed to submit approval');
     } finally {
       setSubmitting(false);
     }
@@ -124,7 +126,9 @@ const Remediations: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -389,6 +393,7 @@ const Remediations: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

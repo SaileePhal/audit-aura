@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Calendar, Filter, Loader2, Trash2, Eye } from 'lucide-react';
 import { theme } from '@/config/theme';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 interface Report {
   id: string;
@@ -14,6 +15,7 @@ interface Report {
 }
 
 export const AuditorReports: React.FC = () => {
+  const { toasts, removeToast, showSuccess, showWarning } = useToast();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -67,7 +69,7 @@ export const AuditorReports: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Report generated successfully: ${data.report.name}`);
+        showSuccess('Report Generated', `Report generated successfully: ${data.report.name}`);
         fetchReports(); // Refresh list
       } else {
         const errorData = await response.json();
@@ -95,11 +97,11 @@ export const AuditorReports: React.FC = () => {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        alert('Failed to download report');
+        showWarning('Download Failed', 'Failed to download report');
       }
     } catch (err) {
       console.error('Error downloading report:', err);
-      alert('Failed to download report');
+      showWarning('Download Failed', 'Failed to download report');
     }
   };
 
@@ -112,14 +114,14 @@ export const AuditorReports: React.FC = () => {
       });
 
       if (response.ok) {
-        alert('Report deleted successfully');
+        showSuccess('Report Deleted', 'Report deleted successfully');
         fetchReports(); // Refresh list
       } else {
-        alert('Failed to delete report');
+        showWarning('Delete Failed', 'Failed to delete report');
       }
     } catch (err) {
       console.error('Error deleting report:', err);
-      alert('Failed to delete report');
+      showWarning('Delete Failed', 'Failed to delete report');
     }
   };
 
@@ -130,7 +132,9 @@ export const AuditorReports: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className={`text-3xl font-bold ${theme.text.primary}`}>Audit Reports</h1>
@@ -340,6 +344,7 @@ export const AuditorReports: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

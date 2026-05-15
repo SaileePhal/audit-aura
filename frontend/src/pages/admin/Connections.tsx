@@ -71,15 +71,15 @@ export const AdminConnections: React.FC = () => {
       const result = await response.json();
       
       if (result.success) {
-        alert('Connection test successful!');
+        showSuccess('Connection Test', 'Connection test successful!');
       } else {
-        alert(`Connection test failed: ${result.message}`);
+        showWarning('Connection Test Failed', result.message || 'Connection test failed');
       }
       
       await loadConnections();
     } catch (error) {
       console.error('Failed to test connection:', error);
-      alert('Failed to test connection');
+      showWarning('Connection Test Failed', 'Failed to test connection');
     } finally {
       setTestingConnection(null);
     }
@@ -98,7 +98,7 @@ export const AdminConnections: React.FC = () => {
       await loadStats();
     } catch (error) {
       console.error('Failed to delete connection:', error);
-      alert('Failed to delete connection');
+      showWarning('Delete Failed', 'Failed to delete connection');
     }
   };
 
@@ -111,7 +111,7 @@ export const AdminConnections: React.FC = () => {
       await loadConnections();
     } catch (error) {
       console.error('Failed to toggle connection:', error);
-      alert('Failed to toggle connection');
+      showWarning('Toggle Failed', 'Failed to toggle connection');
     }
   };
 

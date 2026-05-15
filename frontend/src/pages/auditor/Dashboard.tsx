@@ -3,6 +3,7 @@ import { FileCheck, TrendingUp, Shield, Download, Cloud, Activity, GitPullReques
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { theme } from '@/config/theme';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 interface AuditTrailEvent {
   id: string;
@@ -17,6 +18,7 @@ interface AuditTrailEvent {
 
 export const AuditorDashboard: React.FC = () => {
   const { complianceScore, violations, fetchDashboard, dashboardData } = useComplianceStore();
+  const { toasts, removeToast, showSuccess, showWarning } = useToast();
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [cloudConnections, setCloudConnections] = useState<any[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditTrailEvent[]>([]);
@@ -160,10 +162,10 @@ export const AuditorDashboard: React.FC = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert('Audit report generated and downloaded successfully!');
+      showSuccess('Report Generated', 'Audit report generated and downloaded successfully!');
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Failed to generate report. Please try again.');
+      showWarning('Report Generation Failed', 'Failed to generate report. Please try again.');
     } finally {
       setGeneratingReport(false);
     }
@@ -185,7 +187,9 @@ export const AuditorDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
       {/* Header with Live Indicator */}
       <div className="flex items-center justify-between">
         <div>
@@ -495,6 +499,7 @@ export const AuditorDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

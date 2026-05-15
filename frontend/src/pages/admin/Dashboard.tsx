@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 interface DashboardKpi {
   label: string;
@@ -222,14 +223,14 @@ const AdminDashboard: React.FC = () => {
       if (response.ok) {
         await fetchDashboard();
         setLastUpdated(new Date());
-        alert('PDF uploaded successfully!');
+        showSuccess('Upload Successful', 'PDF uploaded successfully!');
       } else {
         const error = await response.json();
-        alert(`Upload failed: ${error.detail || 'Unknown error'}`);
+        showWarning('Upload Failed', error.detail || 'Unknown error');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
+      showWarning('Upload Failed', 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
       event.target.value = '';
@@ -1121,6 +1122,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </CollapsibleSection>
     </div>
+    </>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 interface Skill {
   skill_id: string;
@@ -24,6 +25,7 @@ interface SkillStats {
 }
 
 const Skills: React.FC = () => {
+  const { toasts, removeToast, showWarning } = useToast();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [stats, setStats] = useState<SkillStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ const Skills: React.FC = () => {
       await fetchSkills();
     } catch (err) {
       console.error(`Error toggling skill ${skillId}:`, err);
-      alert('Failed to toggle skill. Please try again.');
+      showWarning('Toggle Failed', 'Failed to toggle skill. Please try again.');
     } finally {
       setTogglingSkill(null);
     }
@@ -140,7 +142,9 @@ const Skills: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -350,6 +354,7 @@ const Skills: React.FC = () => {
         Showing {filteredSkills.length} of {skills.length} skills
       </div>
     </div>
+    </>
   );
 };
 

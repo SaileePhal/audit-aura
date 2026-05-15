@@ -5,9 +5,11 @@ import {
 } from 'lucide-react';
 import { useComplianceStore } from '../../store/useComplianceStore';
 import { theme } from '@/config/theme';
+import { useToast, ToastContainer } from '@/components/ToastNotification';
 
 export const UserViolations: React.FC = () => {
   const { violations, fetchDashboard } = useComplianceStore();
+  const { toasts, removeToast, showSuccess, showWarning, showInfo } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -60,15 +62,15 @@ export const UserViolations: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`PR created successfully! #${data.pr_number}`);
+        showSuccess('PR Created', `PR #${data.pr_number} created successfully!`);
         await fetchPRs();
       } else {
         const error = await response.json();
-        alert(`Failed to create PR: ${error.detail || 'Unknown error'}`);
+        showWarning('PR Creation Failed', error.detail || 'Unknown error');
       }
     } catch (error) {
       console.error('Error creating PR:', error);
-      alert('Failed to create PR. Please try again.');
+      showWarning('PR Creation Failed', 'Failed to create PR. Please try again.');
     } finally {
       setCreatingPR(null);
     }
@@ -78,7 +80,7 @@ export const UserViolations: React.FC = () => {
     if (selectedViolations.size === 0) return;
     
     const violationsToFix = (violations || []).filter((v: any) => selectedViolations.has(v.id));
-    alert(`Creating ${violationsToFix.length} PRs for selected violations...`);
+    showInfo('Bulk PR Creation', `Creating ${violationsToFix.length} PRs for selected violations...`);
     // In production, this would batch create PRs
     setSelectedViolations(new Set());
     setShowBulkActions(false);
@@ -108,7 +110,9 @@ export const UserViolations: React.FC = () => {
   const categories = Array.from(new Set((violations || []).map((v: any) => v.category).filter(Boolean)));
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="space-y-6">
       <div>
         <h1 className={`text-3xl font-bold ${theme.text.primary}`}>My Violations</h1>
         <p className={`${theme.text.secondary} mt-1`}>View and track compliance violations</p>
@@ -428,6 +432,7 @@ export const UserViolations: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 
