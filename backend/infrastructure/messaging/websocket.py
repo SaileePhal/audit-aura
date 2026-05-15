@@ -34,7 +34,7 @@ class WebSocketManager:
         await self.send_personal_message({
             "type": "connection",
             "status": "connected",
-            "message": "Connected to AegisAI real-time alerts",
+            "message": "Connected to AuditAura real-time alerts",
             "timestamp": datetime.utcnow().isoformat()
         }, websocket)
         

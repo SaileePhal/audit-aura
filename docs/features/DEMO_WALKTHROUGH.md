@@ -1,4 +1,4 @@
-# AegisAI - Live Demo Walkthrough Script
+# AuditAura - Live Demo Walkthrough Script
 ## Continuous Compliance Guardian - Manager Presentation
 
 ---
@@ -22,7 +22,7 @@
 ## 🎬 Demo Script
 
 ### **INTRO (30 seconds)**
-*"Today I'll demonstrate AegisAI, our continuous compliance monitoring platform that provides real-time audit readiness across multiple cloud providers and compliance standards."*
+*"Today I'll demonstrate AuditAura, our continuous compliance monitoring platform that provides real-time audit readiness across multiple cloud providers and compliance standards."*
 
 ---
 
@@ -38,7 +38,7 @@
   - **Security Analyst** - Operational monitoring
   - **Auditor/Assessor** - Verification & reporting
 
-**Say:** *"AegisAI provides role-based dashboards tailored to each persona's needs. Let's start with the Compliance Manager view."*
+**Say:** *"AuditAura provides role-based dashboards tailored to each persona's needs. Let's start with the Compliance Manager view."*
 
 ---
 
@@ -181,7 +181,7 @@
 
 ## 🎯 Closing Statement
 
-*"AegisAI transforms compliance from a periodic audit nightmare into continuous, automated monitoring. With real-time detection, automated remediation tracking, and comprehensive audit trails, we maintain audit readiness 24/7 across all our cloud infrastructure."*
+*"AuditAura transforms compliance from a periodic audit nightmare into continuous, automated monitoring. With real-time detection, automated remediation tracking, and comprehensive audit trails, we maintain audit readiness 24/7 across all our cloud infrastructure."*
 
 ---
 

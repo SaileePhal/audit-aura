@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Screenshot capture script for AegisAI UI testing
+Screenshot capture script for AuditAura UI testing
 Captures screenshots of all dashboards and saves them to the screenshots folder
 """
 

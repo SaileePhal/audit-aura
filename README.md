@@ -1,4 +1,4 @@
-# AegisAI – Continuous Compliance Guardian
+# AuditAura – Continuous Compliance Guardian
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -10,13 +10,13 @@
 
 ## 📋 Overview
 
-AegisAI is a continuous compliance monitoring platform that shifts organizations from "Point-in-Time" audits to "Continuous Audit" posture. It uses AI agents to monitor configuration changes in real-time, detect compliance violations, and generate automated remediation recommendations.
+AuditAura is a continuous compliance monitoring platform that shifts organizations from "Point-in-Time" audits to "Continuous Audit" posture. It uses AI agents to monitor configuration changes in real-time, detect compliance violations, and generate automated remediation recommendations.
 
 ### The Problem
 Most enterprise audits are "Point-in-Time," meaning a system is only verified as compliant on the day of the audit. Minutes later, a configuration change (like opening an S3 bucket to the public) can break compliance, but it won't be caught until the next audit cycle.
 
 ### The Solution
-AegisAI provides:
+AuditAura provides:
 - **Continuous Monitoring**: Real-time event ingestion from CloudWatch, IBM Cloud, and other sources
 - **AI-Powered Analysis**: Intelligent agents that understand compliance requirements
 - **Instant Alerts**: WebSocket, Email, and Slack notifications for violations
@@ -87,8 +87,8 @@ AegisAI provides:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/aegis-ai.git
-cd aegis-ai
+git clone https://github.com/yourusername/audit-aura.git
+cd audit-aura
 ```
 
 2. **Configure environment variables**
@@ -151,7 +151,7 @@ docker-compose up --build
 
 ### Role-Based Access Control
 
-AegisAI now features a modern, role-based UI with three distinct personas:
+AuditAura now features a modern, role-based UI with three distinct personas:
 
 #### 1. **Administrator**
 - **Dashboard**: Comprehensive overview with compliance metrics, charts, and PDF upload
@@ -304,7 +304,7 @@ LOG_FILE_PATH=/path/to/logs
 
 ## 🤖 AI Agent System
 
-AegisAI uses a rule-based AI agent architecture:
+AuditAura uses a rule-based AI agent architecture:
 
 ### Agent Roles
 
@@ -396,7 +396,7 @@ pytest --cov=. --cov-report=html
 ## 📦 Project Structure
 
 ```
-aegis-ai/
+audit-aura/
 ├── backend/
 │   ├── main.py                 # FastAPI application
 │   ├── config.py               # Configuration management
@@ -444,8 +444,8 @@ MIT License - see LICENSE file for details
 ## 📞 Support
 
 For issues and questions:
-- GitHub Issues: [Create an issue](https://github.com/yourusername/aegis-ai/issues)
-- Email: support@aegisai.com
+- GitHub Issues: [Create an issue](https://github.com/yourusername/audit-aura/issues)
+- Email: support@auditaura.com
 
 ## 🐛 Troubleshooting
 

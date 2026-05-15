@@ -1,4 +1,4 @@
-# AegisAI Deployment Guide
+# AuditAura Deployment Guide
 
 ## Quick Start
 

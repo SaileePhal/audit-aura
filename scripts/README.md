@@ -1,6 +1,6 @@
 # Helper Scripts
 
-This directory contains utility and helper scripts for the AegisAI project.
+This directory contains utility and helper scripts for the AuditAura project.
 
 ## Available Scripts
 

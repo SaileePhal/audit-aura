@@ -1,5 +1,5 @@
 """
-AegisAI - Continuous Compliance Guardian
+AuditAura - Continuous Compliance Guardian
 Main FastAPI application
 """
 import asyncio
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="AegisAI",
+    title="AuditAura",
     description="Continuous Compliance Guardian - Real-time AI-powered audit readiness",
     version="1.0.0"
 )

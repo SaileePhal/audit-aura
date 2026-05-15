@@ -72,7 +72,7 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout }) => {
                 </div>
                 <div className="ml-3">
                   <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                    AegisAI
+                    AuditAura
                   </span>
                   <div className="flex items-center gap-1 mt-0.5">
                     <Activity className="h-3 w-3 text-green-400 animate-pulse" />

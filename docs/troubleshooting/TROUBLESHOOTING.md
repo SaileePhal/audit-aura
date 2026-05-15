@@ -1,4 +1,4 @@
-# AegisAI Troubleshooting Guide
+# AuditAura Troubleshooting Guide
 
 ## Current Status ✅
 

@@ -119,7 +119,7 @@ Added:
 ```bash
 # 1. Clone and setup
 git clone <repo>
-cd aegis-ai
+cd audit-aura
 
 # 2. Generate encryption key
 python tests/fix_encryption_key.py

@@ -1,5 +1,5 @@
 
-🎤 AegisAI Demo Script
+🎤 AuditAura Demo Script
 
 1. Introduction
 "Today, compliance is point-in-time. A system can pass an audit, and minutes later become non-compliant."
@@ -8,7 +8,7 @@
 "Organizations only discover violations weeks later during audits."
 
 3. Solution
-"AegisAI is a continuous compliance observer powered by AI."
+"AuditAura is a continuous compliance observer powered by AI."
 
 4. Demo
 - Upload compliance PDF
@@ -29,4 +29,4 @@
 "This eliminates audit panic and ensures continuous readiness."
 
 8. Closing
-"With AegisAI, compliance is no longer periodic — it's continuous."
+"With AuditAura, compliance is no longer periodic — it's continuous."

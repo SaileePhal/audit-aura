@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# AegisAI - Continuous Compliance Guardian
+# AuditAura - Continuous Compliance Guardian
 # Startup script for Docker Compose deployment
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║         AegisAI - Continuous Compliance Guardian          ║"
+echo "║         AuditAura - Continuous Compliance Guardian          ║"
 echo "║              Real-time Audit Readiness Platform            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -57,7 +57,7 @@ else
 fi
 
 echo ""
-echo "🚀 Starting AegisAI services..."
+echo "🚀 Starting AuditAura services..."
 echo ""
 
 # Check if Docker is running
@@ -122,7 +122,7 @@ fi
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                   🎉 AegisAI is Ready!                     ║"
+echo "║                   🎉 AuditAura is Ready!                     ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 echo "📱 Access Points:"

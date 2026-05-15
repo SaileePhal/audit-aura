@@ -1,5 +1,5 @@
 """
-Configuration management for AegisAI
+Configuration management for AuditAura
 Handles environment variables and application settings
 """
 import os
@@ -35,7 +35,7 @@ class Config(BaseModel):
     smtp_port: int = Field(default=587, env='SMTP_PORT')
     smtp_user: Optional[str] = Field(default=None, env='SMTP_USER')
     smtp_password: Optional[str] = Field(default=None, env='SMTP_PASSWORD')
-    smtp_from: str = Field(default='noreply@aegisai.com', env='SMTP_FROM')
+    smtp_from: str = Field(default='noreply@auditaura.com', env='SMTP_FROM')
     
     # Slack Configuration
     slack_webhook_url: Optional[str] = Field(default=None, env='SLACK_WEBHOOK_URL')
@@ -123,7 +123,7 @@ def load_config() -> Config:
             smtp_port=int(os.getenv('SMTP_PORT', '587')),
             smtp_user=os.getenv('SMTP_USER'),
             smtp_password=os.getenv('SMTP_PASSWORD'),
-            smtp_from=os.getenv('SMTP_FROM', 'noreply@aegisai.com'),
+            smtp_from=os.getenv('SMTP_FROM', 'noreply@auditaura.com'),
             slack_webhook_url=os.getenv('SLACK_WEBHOOK_URL'),
             github_token=os.getenv('GITHUB_TOKEN'),
             github_repo_owner=os.getenv('GITHUB_REPO_OWNER'),

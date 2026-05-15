@@ -1,5 +1,5 @@
 """
-AegisAI Backend Application
+AuditAura Backend Application
 """
 __version__ = "1.0.0"
 

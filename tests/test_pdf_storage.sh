@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# AegisAI PDF Storage and Ingestion Test Script
+# AuditAura PDF Storage and Ingestion Test Script
 # This script tests the new PDF storage and ingestion features
 
 set -e
 
 echo "=========================================="
-echo "AegisAI PDF Storage & Ingestion Test"
+echo "AuditAura PDF Storage & Ingestion Test"
 echo "=========================================="
 echo ""
 

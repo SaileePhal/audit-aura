@@ -34,7 +34,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <Shield className="h-8 w-8 text-white" />
           </div>
           <h1 className={`text-3xl font-bold ${theme.text.primary} mb-2 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent`}>
-            AegisAI
+            AuditAura
           </h1>
           <p className={theme.text.secondary}>Continuous Compliance Guardian</p>
         </div>

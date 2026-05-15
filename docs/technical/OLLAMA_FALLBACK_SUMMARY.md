@@ -229,4 +229,4 @@ The OpenAI to Ollama fallback implementation provides:
 - ✅ **Flexibility**: Easy to configure and customize
 - ✅ **Developer Friendly**: Works out of the box
 
-This ensures AegisAI can always extract compliance controls, making it production-ready for enterprise deployments.
+This ensures AuditAura can always extract compliance controls, making it production-ready for enterprise deployments.

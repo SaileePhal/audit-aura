@@ -103,7 +103,7 @@ docker-compose up -d backend
 **Solution 4: Check Data File**
 ```bash
 # Verify data file has decimals (0.78) not percentages (78)
-docker exec aegis-backend cat /app/data/mock_data.json | grep overall
+docker exec audit-aura-backend cat /app/data/mock_data.json | grep overall
 # Should show: "overall": 0.78
 ```
 

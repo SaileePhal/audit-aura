@@ -1,7 +1,7 @@
-# AegisAI - Improvements Summary
+# AuditAura - Improvements Summary
 
 ## Overview
-This document summarizes all the improvements made to the AegisAI Continuous Compliance Guardian application based on the original problem statement.
+This document summarizes all the improvements made to the AuditAura Continuous Compliance Guardian application based on the original problem statement.
 
 ## 🔒 Security Improvements
 

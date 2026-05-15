@@ -1,7 +1,7 @@
-# AegisAI - Final Implementation Summary
+# AuditAura - Final Implementation Summary
 
 ## Project Overview
-AegisAI is a continuous compliance monitoring system that uses AI agents to detect, analyze, and remediate compliance violations in real-time. The application shifts organizations from "Point-in-Time" audits to "Continuous Audit" posture.
+AuditAura is a continuous compliance monitoring system that uses AI agents to detect, analyze, and remediate compliance violations in real-time. The application shifts organizations from "Point-in-Time" audits to "Continuous Audit" posture.
 
 ## Completed Features ✅
 
@@ -444,7 +444,7 @@ VITE_WS_URL=ws://localhost:8000/ws
 
 ## Conclusion
 
-AegisAI successfully implements a continuous compliance monitoring system with:
+AuditAura successfully implements a continuous compliance monitoring system with:
 - ✅ Real-time violation detection
 - ✅ AI-powered analysis
 - ✅ Multi-persona dashboards
@@ -461,7 +461,7 @@ The application is ready for deployment and can be extended with the AI Copilot 
 ```bash
 # Clone repository
 git clone <repo-url>
-cd aegis-ai
+cd audit-aura
 
 # Set environment variables
 cp .env.example .env

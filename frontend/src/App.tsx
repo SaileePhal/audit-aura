@@ -42,14 +42,14 @@ function App() {
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('aegis_user');
+    const storedUser = localStorage.getItem('audit-aura_user');
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('aegis_user');
+        localStorage.removeItem('audit-aura_user');
       }
     }
     setLoading(false);
@@ -73,12 +73,12 @@ function App() {
     const newUser = { role, name, email };
     setUser(newUser);
     // Store user session (in production, use secure tokens)
-    localStorage.setItem('aegis_user', JSON.stringify(newUser));
+    localStorage.setItem('audit-aura_user', JSON.stringify(newUser));
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('aegis_user');
+    localStorage.removeItem('audit-aura_user');
   };
 
   if (loading) {

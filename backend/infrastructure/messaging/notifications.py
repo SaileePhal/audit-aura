@@ -23,7 +23,7 @@ class NotificationService:
         smtp_port: int = 587,
         smtp_user: Optional[str] = None,
         smtp_password: Optional[str] = None,
-        smtp_from: str = "noreply@aegisai.com",
+        smtp_from: str = "noreply@auditaura.com",
         slack_webhook_url: Optional[str] = None
     ):
         self.smtp_host = smtp_host

@@ -1,4 +1,4 @@
-# AegisAI - Application Status
+# AuditAura - Application Status
 
 ## ✅ Application Successfully Started
 

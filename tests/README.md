@@ -1,6 +1,6 @@
 # Test Scripts
 
-This directory contains all test and utility scripts for the AegisAI project.
+This directory contains all test and utility scripts for the AuditAura project.
 
 ## Test Scripts
 

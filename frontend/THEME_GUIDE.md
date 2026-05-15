@@ -1,7 +1,7 @@
 # Theme Configuration Guide
 
 ## Overview
-AegisAI uses a centralized theme system that allows you to switch between light and dark modes by changing a single variable.
+AuditAura uses a centralized theme system that allows you to switch between light and dark modes by changing a single variable.
 
 ## Quick Start
 

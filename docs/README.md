@@ -1,4 +1,4 @@
-# AegisAI Documentation
+# AuditAura Documentation
 
 This directory contains all project documentation organized by category.
 

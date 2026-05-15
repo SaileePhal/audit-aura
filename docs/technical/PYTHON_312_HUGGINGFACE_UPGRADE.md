@@ -1,7 +1,7 @@
 # Python 3.12 & HuggingFace Embeddings Upgrade
 
 ## Overview
-Upgraded the AegisAI backend to Python 3.12 and implemented HuggingFace embeddings for local PDF vectorization, eliminating dependency on OpenAI API and associated quota issues.
+Upgraded the AuditAura backend to Python 3.12 and implemented HuggingFace embeddings for local PDF vectorization, eliminating dependency on OpenAI API and associated quota issues.
 
 ## Changes Made
 

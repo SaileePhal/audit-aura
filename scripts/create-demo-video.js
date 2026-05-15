@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
 (async () => {
-  console.log('🎬 Starting AegisAI Demo Video Recording...\n');
+  console.log('🎬 Starting AuditAura Demo Video Recording...\n');
 
   const browser = await chromium.launch({
     headless: false,
@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
     // ========================================
     // INTRO: Landing Page
     // ========================================
-    console.log('📍 Step 1: Opening AegisAI application...');
+    console.log('📍 Step 1: Opening AuditAura application...');
     await page.goto('http://localhost:3000');
     await page.waitForTimeout(3000);
 

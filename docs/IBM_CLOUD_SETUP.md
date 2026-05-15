@@ -1,10 +1,10 @@
 # IBM Cloud Integration Setup Guide
 
-This guide explains how to integrate AegisAI with IBM Cloud services for real-time compliance monitoring.
+This guide explains how to integrate AuditAura with IBM Cloud services for real-time compliance monitoring.
 
 ## Overview
 
-AegisAI can connect to your IBM Cloud account to monitor:
+AuditAura can connect to your IBM Cloud account to monitor:
 - **IBM Cloud Activity Tracker**: Configuration changes and security events
 - **IBM Cloud Monitoring**: Performance metrics and alerts
 - **IBM Cloud Logs**: Application and system logs
@@ -24,7 +24,7 @@ AegisAI can connect to your IBM Cloud account to monitor:
 3. Click **Create instance**
 4. Select your region (e.g., `us-south`)
 5. Choose a plan (Lite for testing, paid for production)
-6. Name your instance (e.g., `aegis-activity-tracker`)
+6. Name your instance (e.g., `audit-aura-activity-tracker`)
 7. Click **Create**
 8. Note the **Instance ID** from the instance details page
 
@@ -34,7 +34,7 @@ AegisAI can connect to your IBM Cloud account to monitor:
 2. Click **Create instance**
 3. Select your region
 4. Choose a plan
-5. Name your instance (e.g., `aegis-monitoring`)
+5. Name your instance (e.g., `audit-aura-monitoring`)
 6. Click **Create**
 7. Note the **Instance ID**
 
@@ -44,7 +44,7 @@ AegisAI can connect to your IBM Cloud account to monitor:
 2. Click **Create instance**
 3. Select your region
 4. Choose a plan
-5. Name your instance (e.g., `aegis-logs`)
+5. Name your instance (e.g., `audit-aura-logs`)
 6. Click **Create**
 7. Note the **Instance ID**
 
@@ -54,8 +54,8 @@ AegisAI can connect to your IBM Cloud account to monitor:
 2. Select **Manage** → **Access (IAM)**
 3. Click **API keys** in the left sidebar
 4. Click **Create an IBM Cloud API key**
-5. Enter a name (e.g., `aegis-api-key`)
-6. Add a description (e.g., "API key for AegisAI compliance monitoring")
+5. Enter a name (e.g., `audit-aura-api-key`)
+6. Add a description (e.g., "API key for AuditAura compliance monitoring")
 7. Click **Create**
 8. **IMPORTANT**: Copy and save the API key immediately - you won't be able to see it again!
 
@@ -78,7 +78,7 @@ To set permissions:
 7. Choose **Reader** role
 8. Click **Add** and **Assign**
 
-## Step 4: Configure AegisAI
+## Step 4: Configure AuditAura
 
 ### 4.1 Update Environment Variables
 
@@ -191,7 +191,7 @@ In your IBM Cloud account, make a configuration change:
 - Change IAM permissions
 - Update database settings
 
-### 7.2 Observe in AegisAI
+### 7.2 Observe in AuditAura
 
 Within 10-30 seconds, you should see:
 1. New event appears in "Recent Events"
@@ -234,7 +234,7 @@ Within 10-30 seconds, you should see:
 
 ## Event Types Monitored
 
-AegisAI monitors these IBM Cloud event types:
+AuditAura monitors these IBM Cloud event types:
 
 ### Storage Events
 - `cos.bucket.update` - Bucket configuration changes
@@ -260,7 +260,7 @@ AegisAI monitors these IBM Cloud event types:
 
 ## Real-Time Features
 
-Once configured, AegisAI provides:
+Once configured, AuditAura provides:
 
 1. **Live Event Stream**: See configuration changes as they happen
 2. **Instant Violation Detection**: Violations detected within seconds

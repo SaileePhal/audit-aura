@@ -2,7 +2,7 @@
 
 ## Problem
 
-When using LM Studio with AegisAI, you may encounter this error:
+When using LM Studio with AuditAura, you may encounter this error:
 
 ```
 [ERROR] [mistralai/mistral-7b-instruct-v0.3] Error: Channel Error
@@ -69,7 +69,7 @@ Expected response:
 
 ### 4. Docker Network Issues
 
-If running AegisAI in Docker, the container can't reach LM Studio on host.
+If running AuditAura in Docker, the container can't reach LM Studio on host.
 
 **Solution:**
 
@@ -84,7 +84,7 @@ LM_STUDIO_HOST=http://172.17.0.1:1234
 
 Test connection from container:
 ```bash
-docker exec -it aegis-backend curl http://host.docker.internal:1234/v1/models
+docker exec -it audit-aura-backend curl http://host.docker.internal:1234/v1/models
 ```
 
 ### 5. Port Conflict
@@ -145,7 +145,7 @@ curl -X POST http://localhost:1234/v1/chat/completions \
 Expected: JSON response with completion
 If fails: Model not properly loaded or server issue
 
-### Step 4: Check AegisAI Configuration
+### Step 4: Check AuditAura Configuration
 
 Verify `.env` settings:
 ```bash
@@ -161,10 +161,10 @@ LM_STUDIO_ENABLED=true
 
 ### Step 5: Review Logs
 
-Check AegisAI backend logs for detailed error messages:
+Check AuditAura backend logs for detailed error messages:
 ```bash
 # If running with Docker
-docker logs aegis-backend
+docker logs audit-aura-backend
 
 # Look for lines like:
 # [ERROR] LM Studio returned error: ...
@@ -197,7 +197,7 @@ The updated [`extractor.py`](../backend/core/extraction/extractor.py) now provid
 5. Click "Load Model" again
 6. Wait for "Loaded" status
 7. Ensure "Start Server" is clicked
-8. Retry PDF upload in AegisAI
+8. Retry PDF upload in AuditAura
 
 ### Solution 2: Restart LM Studio
 
@@ -222,7 +222,7 @@ LM_STUDIO_MODEL=meta-llama/llama-3.2-3b-instruct
 Then in LM Studio:
 1. Download the new model
 2. Load it in Local Server
-3. Restart AegisAI backend
+3. Restart AuditAura backend
 
 ### Solution 4: Enable OpenAI Fallback
 
@@ -291,7 +291,7 @@ Expected output:
 
 ### Test 2: PDF Upload
 
-1. Start AegisAI: `./start.sh`
+1. Start AuditAura: `./start.sh`
 2. Upload a small PDF via UI
 3. Check logs for:
 ```
@@ -340,7 +340,7 @@ Ensure your system meets minimum requirements:
 If none of the above works:
 1. Check [LM Studio Discord](https://discord.gg/lmstudio)
 2. Review [LM Studio Documentation](https://lmstudio.ai/docs)
-3. Open issue on AegisAI GitHub with:
+3. Open issue on AuditAura GitHub with:
    - LM Studio version
    - Model name and version
    - Full error logs

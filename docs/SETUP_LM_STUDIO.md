@@ -1,4 +1,4 @@
-# LM Studio Setup Guide for AegisAI
+# LM Studio Setup Guide for AuditAura
 
 This guide will help you set up LM Studio with google/gemma-2-9b for PDF compliance extraction.
 
@@ -28,7 +28,7 @@ Download and install LM Studio from [https://lmstudio.ai/](https://lmstudio.ai/)
 3. Click "Start Server"
 4. Verify the server is running on `http://localhost:1234`
 
-### 4. Configure AegisAI
+### 4. Configure AuditAura
 
 Create or update your `.env` file in the project root:
 
@@ -63,7 +63,7 @@ Expected output:
 ✓ All tests passed!
 ```
 
-### 6. Start AegisAI
+### 6. Start AuditAura
 
 ```bash
 # Using Docker
@@ -99,7 +99,7 @@ Expected response:
 
 ### Test PDF Upload
 
-1. Start AegisAI backend
+1. Start AuditAura backend
 2. Upload a compliance PDF via the UI or API:
 
 ```bash
@@ -214,7 +214,7 @@ The system will automatically use OpenAI instead.
 
 ## Docker Considerations
 
-If running AegisAI in Docker:
+If running AuditAura in Docker:
 
 1. **LM Studio Host:** Use `host.docker.internal` instead of `localhost`
    ```bash
@@ -265,5 +265,5 @@ After successful setup:
 
 - [LM Studio Documentation](https://lmstudio.ai/docs)
 - [Google Gemma-2 Model Card](https://huggingface.co/google/gemma-2-9b)
-- [AegisAI Documentation](docs/README.md)
+- [AuditAura Documentation](docs/README.md)
 - [API Reference](docs/API_REFERENCE.md)

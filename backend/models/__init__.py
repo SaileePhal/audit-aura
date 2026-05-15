@@ -1,4 +1,4 @@
 """
-Database models for AegisAI
+Database models for AuditAura
 """
 # Made with Bob

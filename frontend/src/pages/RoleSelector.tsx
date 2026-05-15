@@ -49,7 +49,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ onSelect }) => {
   const handleRoleSelect = (role: UserRole, roleName: string) => {
     // Get user info from localStorage (set during login)
     const storedUser = localStorage.getItem('user');
-    let email = 'demo@aegisai.com';
+    let email = 'demo@auditaura.com';
     let name = 'Demo User';
     
     if (storedUser) {
@@ -86,7 +86,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ onSelect }) => {
           </div>
           <h1 className="text-5xl font-bold mb-3">
             <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Welcome to AegisAI
+              Welcome to AuditAura
             </span>
           </h1>
           <p className={`text-xl ${theme.text.secondary} flex items-center justify-center gap-2`}>

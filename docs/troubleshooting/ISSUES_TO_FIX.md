@@ -1,4 +1,4 @@
-# Issues to Fix - AegisAI Application
+# Issues to Fix - AuditAura Application
 
 ## Issue 1: Compliance Score Showing 10000% Instead of 100%
 

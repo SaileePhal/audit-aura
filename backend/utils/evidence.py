@@ -119,7 +119,7 @@ Recommended Actions:
 3. Verify compliance after implementing fixes
 4. Document the resolution for audit trail
 
-This violation was detected by AegisAI's continuous compliance monitoring system.
+This violation was detected by AuditAura's continuous compliance monitoring system.
 Timestamp: {event.get('event_time', 'Unknown')}
 """
     

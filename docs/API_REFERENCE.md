@@ -1,4 +1,4 @@
-# AegisAI API Reference
+# AuditAura API Reference
 
 ## Base URL
 ```

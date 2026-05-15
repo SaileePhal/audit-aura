@@ -1,7 +1,7 @@
-# AegisAI Modernization Summary
+# AuditAura Modernization Summary
 
 ## Overview
-This document outlines the modernization efforts applied to both frontend and backend of the AegisAI application, implementing modern libraries, folder structures, and coding practices.
+This document outlines the modernization efforts applied to both frontend and backend of the AuditAura application, implementing modern libraries, folder structures, and coding practices.
 
 ## 🎨 Frontend Modernization
 
@@ -450,14 +450,14 @@ services:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aegisai-backend
+  name: auditaura-backend
 spec:
   replicas: 3
   template:
     spec:
       containers:
       - name: backend
-        image: aegisai/backend:latest
+        image: auditaura/backend:latest
 ```
 
 ## 📚 Documentation

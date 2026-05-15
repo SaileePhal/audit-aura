@@ -2,7 +2,7 @@
 
 ## Overview
 
-AegisAI now supports automatic fallback from OpenAI to Ollama (local LLM) when OpenAI API is unavailable or quota is exhausted. This ensures continuous operation even when cloud API services are down or rate-limited.
+AuditAura now supports automatic fallback from OpenAI to Ollama (local LLM) when OpenAI API is unavailable or quota is exhausted. This ensures continuous operation even when cloud API services are down or rate-limited.
 
 ## Architecture
 
@@ -96,7 +96,7 @@ ollama:
 ```bash
 #!/bin/bash
 echo "Pulling phi4-mini model (optimized for low memory)..."
-docker exec aegis-ai-ollama-1 ollama pull phi4-mini
+docker exec audit-aura-ollama-1 ollama pull phi4-mini
 ```
 
 ## Usage
@@ -245,9 +245,9 @@ docker-compose restart ollama
 **Solutions**:
 1. **Use larger model** (if memory allows):
    ```bash
-   docker exec aegis-ai-ollama-1 ollama pull phi
+   docker exec audit-aura-ollama-1 ollama pull phi
    # or
-   docker exec aegis-ai-ollama-1 ollama pull mistral
+   docker exec audit-aura-ollama-1 ollama pull mistral
    ```
    Note: Requires more RAM (2-4GB)
 
@@ -329,4 +329,4 @@ The OpenAI to Ollama fallback provides:
 - **Privacy**: Option to keep all data local
 - **Flexibility**: Easy to configure and customize
 
-This implementation ensures AegisAI can always extract compliance controls, regardless of external API availability.
+This implementation ensures AuditAura can always extract compliance controls, regardless of external API availability.

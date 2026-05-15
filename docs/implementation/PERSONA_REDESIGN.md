@@ -1,4 +1,4 @@
-# AegisAI - Persona Redesign
+# AuditAura - Persona Redesign
 
 ## 🎯 Current Problem
 

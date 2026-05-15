@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 
 def main():
     print("=" * 70)
-    print("Aegis AI - Encryption Key Fix Utility")
+    print("Audit Aura - Encryption Key Fix Utility")
     print("=" * 70)
     print()
     
