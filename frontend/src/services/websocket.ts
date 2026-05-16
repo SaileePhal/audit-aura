@@ -1,10 +1,11 @@
 import type { ViolationAlert } from '@/types';
+import { withAppId } from '@/utils/appParam';
 
 type MessageHandler = (data: ViolationAlert) => void;
 type ErrorHandler = (error: Event) => void;
 type CloseHandler = () => void;
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || '/ws';
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -24,7 +25,15 @@ class WebSocketService {
     }
 
     this.isIntentionallyClosed = false;
-    this.ws = new WebSocket(WS_URL);
+    
+    // Resolve relative URL to absolute WS URL with correct protocol
+    let finalUrl = WS_URL;
+    if (!finalUrl.startsWith('ws://') && !finalUrl.startsWith('wss://')) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      finalUrl = `${protocol}//${window.location.host}${finalUrl}`;
+    }
+    
+    this.ws = new WebSocket(withAppId(finalUrl));
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');

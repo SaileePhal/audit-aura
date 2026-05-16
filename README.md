@@ -23,11 +23,17 @@ AuditAura provides:
 - **Dynamic Compliance Tracking**: Real-time compliance percentage per audit standard
 - **Auto-Remediation**: AI-generated fix recommendations and GitHub PR creation
 
+## 👥 Team AuditAura
+- **Durgadas** - Team Lead & Backend Architect
+- **Team Member 1** - Frontend Developer
+- **Team Member 2** - Cloud & DevOps
+- **Team Member 3** - UI/UX Designer
+
 ## ✨ Features
 
 ### Core Capabilities
-- ✅ **Hybrid AI Architecture** - OpenAI for complex tasks + Local LLM (Ollama) for efficiency
-- ✅ **Intelligent Fallback** - Automatic switch to Ollama when OpenAI quota exhausted
+- ✅ **Unified AI Engine** - Powered by OpenCode Zen (Anthropic Bridge) for precise compliance mapping
+- ✅ **Dynamic Resource Matching** - Maps real-time cloud events to extracted compliance controls
 - ✅ **Multi-Source Event Ingestion** - CloudWatch, IBM Cloud, Generic Logs
 - ✅ **PDF Compliance Ingestion** - Upload SOC2, HIPAA, ISO27001 PDFs via file or URL
 - ✅ **Vector Store Search** - Semantic search for relevant compliance controls
@@ -36,6 +42,17 @@ AuditAura provides:
 - ✅ **Compliance Dashboard** - Live compliance scores per standard
 - ✅ **Security First** - No eval(), input validation, secure configuration
 - ✅ **Mock Mode** - Demo-ready with synthetic data for presentations
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 18, Vite, Tailwind CSS, Lucide Icons, Recharts |
+| **Backend** | FastAPI, Pydantic, SQLAlchemy, Websockets |
+| **AI/ML** | OpenCode Zen (Anthropic), LangChain, Sentence Transformers |
+| **Database** | MySQL (RDS Compatible), SQLite (Dev), FAISS (Vector) |
+| **DevOps** | Docker, Docker Compose, GitHub Actions |
+| **Cloud** | AWS (S3, CloudWatch), IBM Cloud (Activity Tracker) |
 
 ### Supported Audit Standards
 - SOC2 (System and Organization Controls 2)
@@ -77,11 +94,10 @@ AuditAura provides:
 
 ### Prerequisites
 - Docker & Docker Compose
-- OpenAI API Key (optional - falls back to local Ollama LLM)
+- OpenCode Zen (Anthropic) API Key (Primary)
+- OpenAI API Key (Optional)
 - (Optional) SMTP credentials for email alerts
 - (Optional) Slack webhook URL for Slack alerts
-
-> **Note**: OpenAI API key is optional. If not provided or quota exhausted, the system automatically falls back to Ollama (local LLM) for PDF extraction. See [OLLAMA_FALLBACK.md](OLLAMA_FALLBACK.md) for details.
 
 ### Installation
 
@@ -113,7 +129,9 @@ ENCRYPTION_KEY=your_generated_key_here
 
 Optional variables (recommended for best performance):
 ```env
-OPENAI_API_KEY=your_openai_api_key_here  # Optional - uses Ollama if not set
+ANTHROPIC_API_KEY=your_opencode_key_here
+ANTHROPIC_BASE_URL=https://opencode.ai/zen
+ANTHROPIC_MODEL=minimax-m2.5-free
 ```
 
 Optional variables:
@@ -143,9 +161,37 @@ docker-compose up --build
 ```
 
 4. **Access the application**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+- **Frontend (Local)**: http://localhost:3000 (standard local development)
+- **Frontend (Production Mode)**: http://localhost:8000 (matches deployment exposure)
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+> [!IMPORTANT]
+> When running in the **Semicolons Portal**, you must append `?app=<your_app_id>` to the URL for correct request routing.
+
+### 🏗️ Semicolons Deployment Alignment
+This repository is pre-configured for the Semicolons 2026 deployment portal:
+- **Port Exposure**: The application is configured to expose itself on **port 8000** as required by the platform guidelines.
+- **App Query Parameter**: The frontend is built with a custom utility (`appParam.ts`) that captures and persists the `app` identifier from the URL. This is critical for the shared DNS routing model used during the event.
+- **Database Injection**: Backend consumes the `DATABASE_URL` environment variable for RDS connectivity, falling back to SQLite for local development.
+- **LLM Integration**: Integrated with the **OpenCode Zen (Anthropic Bridge)**. Ensure `ANTHROPIC_API_KEY` is set to your Opencode key for full AI functionality.
+- **Health Checks**: Root path `/` on the backend provides a standard health check response for the portal's monitoring.
+
+## 🚀 Semicolons Portal Deployment Steps
+
+Follow these steps to deploy AuditAura on the official Semicolons deployment platform:
+
+1. **Submit Repository**: Provide the Git URL of this repository in the portal.
+2. **Configure Environment Variables**:
+   Add the following mandatory variables in the Portal settings:
+   - `ANTHROPIC_API_KEY`: Your OpenCode AI Zen API key.
+   - `ENCRYPTION_KEY`: A 32-byte base64-encoded Fernet key (generated via `python backend/infrastructure/security/encryption.py`).
+   - `DATABASE_URL`: (Optional) The MySQL connection string for the provided RDS instance.
+   - `MOCK_MODE`: Set to `false` for live cloud monitoring, or `true` for demo simulation.
+3. **Set Port**: Ensure the deployment configuration points to **Port 8000**.
+4. **Model Selection**: Choose the `minimax-m2.5-free` (or equivalent Anthropic-compatible) model from the portal dropdown.
+5. **Final Access**: Once deployed, access your application using the provided domain and **append the app ID**:
+   `https://<your-deploy-url>/?app=<your-app-id>`
 
 ## 🎨 New UI Features
 
@@ -436,7 +482,7 @@ MIT License - see LICENSE file for details
 ## 🙏 Acknowledgments
 
 - OpenAI for GPT models
-- Ollama for local LLM support
+- OpenCode.ai Zen for AI orchestration
 - LangChain for AI orchestration
 - FastAPI for the backend framework
 - React for the frontend framework
@@ -472,8 +518,7 @@ This error occurs when the `ENCRYPTION_KEY` environment variable is not set or h
 
 For other troubleshooting topics, see:
 - [Troubleshooting Guide](docs/troubleshooting/TROUBLESHOOTING.md)
-- [Ollama Fallback](docs/technical/OLLAMA_FALLBACK.md)
-- [LM Studio Integration](docs/technical/LM_STUDIO_INTEGRATION.md)
+- [Semicolons Deployment Portal](https://semicolons.opencode.ai)
 
 ## 🗺️ Roadmap
 

@@ -12,11 +12,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     // Mock authentication - in production, this would call an API
     localStorage.setItem('user', JSON.stringify({ email, name: 'Demo User' }));
-    navigate('/select-role');
+    const { withAppId } = await import('@/utils/appParam');
+    navigate(withAppId('/select-role'));
   };
 
   return (
